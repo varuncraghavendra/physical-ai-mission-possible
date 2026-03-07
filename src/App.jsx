@@ -1,1635 +1,849 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-// GitHub/Vite-ready single-file version
-// Save this file as: src/App.jsx
-// Install dependency: npm install framer-motion
 
-function Card({ className = "", children }) {
-  return <div className={`bg-white ${className}`}>{children}</div>;
-}
-
-function CardHeader({ className = "", children }) {
-  return <div className={className}>{children}</div>;
-}
-
-function CardContent({ className = "", children }) {
-  return <div className={className}>{children}</div>;
-}
-
-function CardTitle({ className = "", children }) {
-  return <h3 className={className}>{children}</h3>;
-}
-
-function Button({ className = "", variant = "default", children, ...props }) {
-  const base = "inline-flex items-center justify-center rounded-md px-4 py-2 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
-  const styles = variant === "secondary"
-    ? "bg-white text-slate-900 border border-slate-200 hover:bg-slate-50"
-    : "bg-blue-600 text-white hover:bg-blue-500";
-  return <button className={`${base} ${styles} ${className}`} {...props}>{children}</button>;
-}
-
-function Badge({ className = "", children }) {
-  return <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${className}`}>{children}</span>;
-}
-
-function Progress({ value = 0, className = "" }) {
+function Card({ className = "", children }) { return <div className={`bg-white ${className}`}>{children}</div>; }
+function CardContent({ className = "", children }) { return <div className={className}>{children}</div>; }
+function Progress({ value = 0, className = "", color = "bg-blue-500" }) {
   return (
     <div className={`w-full overflow-hidden rounded-full bg-slate-200 ${className}`}>
-      <div className="h-full bg-blue-500 transition-all duration-300" style={{ width: `${Math.max(0, Math.min(100, value))}%` }} />
+      <div className={`h-full ${color} transition-all duration-500`} style={{ width: `${Math.max(0, Math.min(100, value))}%` }} />
     </div>
   );
 }
-
 function Input({ className = "", ...props }) {
   return <input className={`w-full border px-3 py-2 outline-none focus:ring-2 focus:ring-blue-300 ${className}`} {...props} />;
 }
 
-const EASY_REALMS = [
-  {
-    name: "Kinematics",
-    description: "Basic position, orientation and motion relationships in robot mechanisms.",
-  },
-  {
-    name: "Control",
-    description: "Foundations of feedback, PID, stability and trajectory tracking in robots.",
-  },
-  {
-    name: "SLAM & Estimation",
-    description: "Core ideas behind localization, mapping, filtering and sensor fusion.",
-  },
-  {
-    name: "Dynamics",
-    description: "Basic force, inertia, torque and equations-of-motion concepts in robotics.",
-  },
-  {
-    name: "Perception",
-    description: "Vision, depth, calibration and sensing basics for robot scene understanding.",
-  },
-  {
-    name: "Machine Learning",
-    description: "Basic learning concepts used in robot perception, prediction and decision-making.",
-  },
-  {
-    name: "Linear Algebra",
-    description: "Matrices, vectors and transformations that support robotics modeling and motion.",
-  },
-  {
-    name: "Probability",
-    description: "Uncertainty, estimation and Bayesian ideas used in SLAM and robotics sensing.",
-  },
-  {
-    name: "Manipulators",
-    description: "Foundations of robot arms, kinematics, Jacobians and workspace reasoning.",
-  },
-  {
-    name: "Computation",
-    description: "CPU, GPU and accelerator basics for robotics software and AI workloads.",
-  },
+const CALM_REALMS = [
+  { name: "Kinematics", description: "Position, orientation, motion and transformations in robot mechanisms.", icon: "🦾" },
+  { name: "Control", description: "Feedback, PID, stability, trajectory tracking and control theory.", icon: "🎛️" },
+  { name: "SLAM & Estimation", description: "Localization, mapping, filtering and sensor fusion under uncertainty.", icon: "🗺️" },
+  { name: "Dynamics", description: "Forces, inertia, torque, equations of motion and multi-body interactions.", icon: "⚙️" },
+  { name: "Perception", description: "Vision, depth, calibration and sensing for robot scene understanding.", icon: "👁️" },
+  { name: "Machine Learning", description: "Learning concepts used in robot perception, prediction and decision-making.", icon: "🧠" },
+  { name: "Linear Algebra", description: "Matrices, vectors and transformations underpinning robotics modeling.", icon: "📐" },
+  { name: "Probability", description: "Uncertainty, Bayesian estimation and probabilistic models in robotics.", icon: "🎲" },
+  { name: "Manipulators", description: "Robot arms, kinematics, Jacobians, workspace and force control.", icon: "🤖" },
+  { name: "Computation", description: "CPU, GPU and accelerator fundamentals for robotics and AI workloads.", icon: "💻" },
 ];
 
-const HARD_REALMS = [
-  {
-    name: "Numerical Optimization",
-    description: "Optimization methods for planning, control and estimation in robotics.",
-  },
-  {
-    name: "Reinforcement Learning",
-    description: "Policy learning, value functions and modern robot learning ideas.",
-  },
-  {
-    name: "Foundation Models",
-    description: "Large multimodal models, robot reasoning and embodied AI concepts.",
-  },
-  {
-    name: "Aerial Robotics",
-    description: "UAV dynamics, estimation, planning and advanced flight-control ideas.",
-  },
-  {
-    name: "Underwater Robotics",
-    description: "Navigation, localization and sensing challenges for underwater systems.",
-  },
-  {
-    name: "Autonomous Driving",
-    description: "Perception, planning, occupancy reasoning and end-to-end driving concepts.",
-  },
+const COMPETITIVE_REALMS = [
+  { name: "Numerical Optimization", description: "Optimization theory, convexity, gradient methods and trajectory planning.", icon: "📈" },
+  { name: "Reinforcement Learning", description: "Policy learning, value functions, exploration and modern robot RL.", icon: "🎮" },
+  { name: "Foundation Models", description: "Large multimodal models, embodied AI and robot reasoning.", icon: "🌐" },
+  { name: "Aerial Robotics", description: "UAV dynamics, estimation, planning and agile flight control.", icon: "✈️" },
+  { name: "Underwater Robotics", description: "Navigation, localization and sensing for underwater systems.", icon: "🌊" },
+  { name: "Autonomous Driving", description: "Perception, prediction, planning and end-to-end driving concepts.", icon: "🚗" },
+  { name: "Legged Locomotion", description: "Contact planning, stability, ZMP and model-based legged control.", icon: "🦿" },
+  { name: "Motion Planning", description: "Sampling, graph search, optimization and completeness in planning.", icon: "🧭" },
 ];
 
-function q(id, realm, mode, difficulty, points, prompt, options, answer, hint, explain, example) {
-  return { id, realm, mode, difficulty, points, prompt, options, answer, hint, explain, example };
+function q(id, realm, mode, diff, pts, prompt, opts, ans, hint, explain, example) {
+  return { id, realm, mode, difficulty: diff, points: pts, prompt, options: opts, answer: ans, hint, explain, example };
 }
 
 const QUESTION_BANK = [
-  // EASY — Kinematics
-  q(1001, "Kinematics", "easy", "Easy", 10, "What does forward kinematics compute?", [
-    "End-effector pose from known joint variables.",
-    "Joint torques from known end-effector pose.",
-    "Battery voltage from known joint variables.",
-    "Sensor covariance from known workspace pose.",
-  ], 0, "Joint values in, pose out.", "Forward kinematics maps joint coordinates to the position and orientation of the end effector.", "A robot arm uses forward kinematics to determine where its gripper is in space."),
-  q(1002, "Kinematics", "easy", "Easy", 10, "What is inverse kinematics?", [
-    "Finding joint variables that achieve a desired end-effector pose.",
-    "Finding torques that achieve a desired battery state.",
-    "Finding sensor gains that achieve a desired image pose.",
-    "Finding covariance values that achieve a desired workspace.",
-  ], 0, "Desired pose, unknown joints.", "Inverse kinematics solves for the joint configuration that realizes a requested Cartesian pose.", "A manipulator solving for joint angles to reach a target point uses inverse kinematics."),
-  q(1003, "Kinematics", "easy", "Easy", 10, "What does a rotation matrix represent?", [
-    "Orientation of one coordinate frame relative to another.",
-    "Translation of one coordinate frame relative to another.",
-    "Covariance of one sensor relative to another.",
-    "Velocity of one actuator relative to another.",
-  ], 0, "Orientation only.", "A rotation matrix describes how axes are oriented between frames while preserving lengths and angles.", "Camera and robot-base frame alignment is often represented with a rotation matrix."),
-  q(1004, "Kinematics", "easy", "Easy", 10, "What is a homogeneous transformation matrix used for?", [
-    "Combining rotation and translation in one rigid-body transform.",
-    "Combining torque and current in one motor model.",
-    "Combining probability and covariance in one estimator step.",
-    "Combining reward and action in one policy model.",
-  ], 0, "Pose composition.", "Homogeneous transforms allow rigid motions to be chained with simple matrix multiplication.", "Serial robot links are often connected using homogeneous transforms."),
-  q(1005, "Kinematics", "easy", "Easy", 10, "What does the Jacobian relate in robot kinematics?", [
-    "Joint velocities to end-effector velocities.",
-    "Joint torques to battery voltages.",
-    "Joint positions to sensor noise.",
-    "Joint currents to image coordinates.",
-  ], 0, "Differential motion mapping.", "The Jacobian maps small changes or rates in joint space into task-space motion.", "It is used for velocity control and singularity analysis."),
-  q(1006, "Kinematics", "easy", "Easy", 10, "Why can inverse kinematics have multiple solutions?", [
-    "Different joint configurations can reach the same end-effector pose.",
-    "Different battery states can reach the same end-effector pose.",
-    "Different sensor models can reach the same end-effector pose.",
-    "Different cost functions can reach the same end-effector pose.",
-  ], 0, "Elbow-up versus elbow-down.", "Many robot geometries allow more than one joint arrangement to reach the same Cartesian target.", "A planar arm commonly has two configurations for one reachable point."),
-  q(1007, "Kinematics", "easy", "Easy", 10, "What is a singularity in kinematics?", [
-    "A configuration where the Jacobian loses rank and motion capability drops.",
-    "A configuration where the inertia matrix becomes diagonal and motion improves.",
-    "A configuration where every joint angle becomes zero.",
-    "A configuration where all sensors become fully observable.",
-  ], 0, "Rank loss is the clue.", "At a singularity, some Cartesian directions become difficult or impossible to generate cleanly.", "Near singularities, small Cartesian commands can require large joint velocities."),
-  q(1008, "Kinematics", "easy", "Easy", 10, "What is a robot workspace?", [
-    "The set of positions or poses the robot end effector can reach.",
-    "The set of torques the robot controller can stabilize.",
-    "The set of images the robot can classify.",
-    "The set of covariances the robot filter can estimate.",
-  ], 0, "Reachability region.", "Workspace describes the reachable geometric region of the robot end effector.", "Joint limits reduce the practical workspace of a manipulator."),
-  q(1009, "Kinematics", "easy", "Easy", 10, "What do DH parameters describe?", [
-    "Geometric relationships between successive robot links.",
-    "Probability relationships between successive sensor updates.",
-    "Dynamic relationships between successive torque inputs.",
-    "Visual relationships between successive image frames.",
-  ], 0, "Serial-link geometry.", "Denavit–Hartenberg parameters provide a systematic way to define serial manipulator geometry.", "They are often used to derive forward kinematics."),
-  q(1010, "Kinematics", "easy", "Easy", 10, "What does a prismatic joint allow?", [
-    "Linear translation along a joint axis.",
-    "Pure rotation about a joint axis.",
-    "Pure probability shift in state space.",
-    "Pure acceleration in image space.",
-  ], 0, "Translation, not rotation.", "A prismatic joint produces translational motion, unlike a revolute joint which produces rotation.", "A sliding-axis actuator is a prismatic-joint example."),
+  // ── CALM: Kinematics ──────────────────────────────────────────────────────
+  q(1001,"Kinematics","calm","Easy",10,"What does forward kinematics compute?",["End-effector pose from known joint variables.","Joint torques from known end-effector pose.","Battery voltage from joint variables.","Sensor covariance from workspace pose."],0,"Joints in, pose out.","FK maps joint coordinates to end-effector position and orientation.","A robot arm uses FK to find where its gripper is."),
+  q(1002,"Kinematics","calm","Easy",10,"What algebraic property defines a valid rotation matrix?",["Its columns are mutually orthonormal and its determinant equals +1.","Its entries are all non-negative real numbers.","Its trace equals the rotation angle in radians.","It is always diagonal."],0,"R^T R = I, det = +1.","Rotation matrices belong to SO(3): orthonormal columns preserve lengths and angles.","Camera-to-base frame alignment uses a rotation matrix."),
+  q(1003,"Kinematics","calm","Easy",10,"What four parameters do Denavit-Hartenberg conventions assign per joint?",["Link length, link twist, joint offset, and joint angle.","Motor torque, gear ratio, link mass, joint velocity.","Focal length, baseline, distortion, resolution.","Voltage, current, resistance, temperature."],0,"Four geometric numbers per joint.","DH parameters describe consecutive link geometry systematically enabling a transformation chain.","They are used to derive forward kinematics for serial manipulators."),
+  q(1004,"Kinematics","calm","Easy",10,"Why can a 6-DOF robot arm have multiple IK solutions for the same end-effector pose?",["Different elbow and wrist configurations can place the end effector at the same pose.","There are exactly 16 sign combinations for joint angles.","The workspace has 16 distinct reachable regions.","Each of the 6 joints independently contributes 2-3 solutions."],0,"Elbow-up/down and wrist flips.","Geometric ambiguities at shoulder, elbow, and wrist joints combine giving up to 16 valid configurations.","Industrial robots store preferred solution branches to avoid unexpected motion."),
+  q(1005,"Kinematics","calm","Easy",10,"What does the manipulator Jacobian matrix map?",["Joint-velocity vector to end-effector velocity twist.","Second derivative of joint positions.","Inertia tensor of the last link.","Covariance of end-effector position errors."],0,"Differential motion: x_dot = J(q)*q_dot.","The Jacobian relates joint rates to Cartesian rates and is used for velocity control and singularity analysis.","Real-time velocity control inverts or pseudo-inverts J(q) every cycle."),
+  q(1006,"Kinematics","calm","Easy",10,"How does a prismatic joint differ from a revolute joint kinematically?",["Prismatic joints produce translation; revolute joints produce rotation about an axis.","Prismatic joints rotate; revolute joints translate.","Both translate but prismatic joints have a variable axis.","Revolute joints have bounded travel; prismatic joints are always unbounded."],0,"Translation vs rotation.","Each type contributes differently to the DH chain: prismatic changes d, revolute changes theta.","Cartesian robots rely on prismatic joints for linear motion."),
+  q(1007,"Kinematics","calm","Medium",15,"What mathematical condition defines a kinematic singularity?",["The Jacobian loses full row rank, eliminating reachable Cartesian directions.","All joint angles simultaneously equal zero.","The end effector leaves the dexterous workspace boundary.","The inertia matrix becomes ill-conditioned."],0,"det(JJ^T)=0 at a singularity.","When rank(J) drops below the task dimension, some Cartesian velocities cannot be generated.","Near singularities, tiny Cartesian commands require very large joint velocities."),
+  q(1008,"Kinematics","calm","Medium",15,"What distinguishes the dexterous workspace from the reachable workspace?",["Dexterous: all orientations achievable; reachable: at least one orientation.","Dexterous: fast motions only; reachable: all speeds.","Dexterous: prismatic joints only; reachable: revolute only.","Dexterous: excludes only the base; reachable: includes singularities."],0,"Full orientation freedom vs any one orientation.","The dexterous workspace is a subset where arbitrary end-effector orientations are possible.","Six-DOF arms are designed to maximise the dexterous workspace."),
+  q(1009,"Kinematics","calm","Medium",15,"Which rotation representation avoids gimbal lock?",["Unit quaternions, which parameterise SO(3) on a 3-sphere.","Rotation vectors, which also have singularities at 2pi.","3x3 rotation matrices, which share Euler topological issues.","Homogeneous coordinates, which are used for positions."],0,"Quaternions have no gimbal lock.","Euler angles lose a DOF when two axes align; unit quaternions represent every rotation without this issue.","Flight controllers commonly use quaternions for attitude estimation."),
+  q(1010,"Kinematics","calm","Medium",15,"Why does composing two rigid-body transforms require 4x4 matrix multiplication rather than addition?",["Translation is rotated by the first frame rotation before being added.","4x4 matrices store more data than 3x4 matrices.","To keep the determinant at zero for all transforms.","Addition is undefined for matrices with non-square sub-blocks."],0,"Translation couples with rotation under composition.","The product T1*T2 correctly rotates the second translation by the first rotation then adds it.","Chaining DH transforms exploits exactly this property."),
+  q(1011,"Kinematics","calm","Medium",15,"What solution does the Jacobian pseudo-inverse provide for redundant manipulators?",["The minimum-norm joint velocity that achieves a desired end-effector velocity.","The maximum-torque joint velocity for a given payload.","An exact inverse solution at a singularity.","The minimum-energy trajectory between two poses."],0,"J-dagger gives minimum-norm q_dot.","J-dagger = J^T(JJ^T)^-1 projects residuals into the null space for secondary tasks.","Redundancy is exploited for obstacle avoidance and joint-limit management."),
+  q(1012,"Kinematics","calm","Hard",20,"In the product-of-exponentials formulation, what does exp(xi_hat*theta) represent?",["The rigid-body transform produced by rotating joint i by angle theta about its screw axis xi.","The covariance of the joint angle estimate.","A linearisation of the DH table near zero configuration.","The mass distribution encoded as an exponential of inertia."],0,"POE: T = exp(xi1*t1)*...*exp(xiN*tN)*M.","Each exponential is a full SE(3) transform derived from the joint screw axis in the world frame.","Avoids DH conventions and handles kinematic chains more elegantly."),
+  q(1013,"Kinematics","calm","Hard",20,"What does the null space of the Jacobian represent for a redundant robot?",["Joint motions that produce no end-effector movement and can achieve secondary goals.","The set of singular configurations of the robot.","Directions of maximum end-effector acceleration.","Joint velocities that exceed actuator limits."],0,"Internal motion with zero task-space effect.","For n>m DOF, dim(null(J)) = n - rank(J) > 0; these directions reconfigure the robot without disturbing the task.","Gradient projection into null(J) avoids joint limits while tracking a task."),
+  q(1014,"Kinematics","calm","Hard",20,"Why is the condition number of the Jacobian a better manipulability indicator than det(J)?",["Condition number reveals how close the smallest singular value is to zero capturing near-singularity in all directions.","Condition number is always 1 for fully redundant robots.","Condition number only applies to square Jacobians.","Condition number equals the joint-space inertia matrix trace."],0,"sigma_max/sigma_min captures worst-case direction.","det(J) can be small even far from singularity; sigma_min from SVD directly measures worst-case velocity amplification.","Trajectory planners minimise condition number for uniform dexterity."),
+  q(1015,"Kinematics","calm","Hard",20,"How does Chasles theorem simplify the description of any rigid-body displacement?",["Any rigid motion equals a rotation about and translation along a single screw axis.","Any rigid motion decomposes into three independent rotations.","Screw theory applies only to planar mechanisms.","Every rigid displacement requires exactly six independent parameters."],0,"One screw axis describes any 3D rigid motion.","Chasles: every rigid displacement equals a pure screw (rotation plus translation along the same axis).","Product-of-exponentials FK builds on this by composing joint screws."),
 
-  // EASY — Control
-  q(1011, "Control", "easy", "Easy", 10, "What is the purpose of feedback control?", [
-    "To reduce error by using measurements of the system output.",
-    "To remove measurements and use only open-loop commands.",
-    "To estimate probability distributions without sensors.",
-    "To replace all dynamics with static maps.",
-  ], 0, "Measured output matters.", "Feedback control compares desired and measured behavior and corrects error in real time.", "A speed controller uses encoder feedback to maintain target velocity."),
-  q(1012, "Control", "easy", "Easy", 10, "What does the proportional term in a PID controller do?", [
-    "Applies control effort proportional to the current error.",
-    "Applies control effort proportional to the future reward.",
-    "Applies control effort proportional to the covariance matrix.",
-    "Applies control effort proportional to the joint limit only.",
-  ], 0, "Current error response.", "The proportional term reacts directly to the present tracking error.", "Larger error produces larger corrective effort."),
-  q(1013, "Control", "easy", "Easy", 10, "What does the integral term in PID help remove?", [
-    "Steady-state error caused by persistent bias or disturbance.",
-    "Instantaneous sensor noise in a single sample.",
-    "All nonlinearities in the plant model.",
-    "All delay in the communication channel.",
-  ], 0, "Accumulated error.", "Integral action sums error over time and can eliminate constant offsets.", "A motor with friction bias may need integral action to hit the exact target speed."),
-  q(1014, "Control", "easy", "Easy", 10, "What does the derivative term in PID mainly respond to?", [
-    "The rate of change of the error.",
-    "The probability of the error.",
-    "The position of the control input.",
-    "The covariance of the output signal.",
-  ], 0, "Error slope.", "Derivative action reacts to how fast the error is changing and can improve damping.", "It is often used to reduce overshoot."),
-  q(1015, "Control", "easy", "Easy", 10, "Why is closed-loop control usually preferred over open-loop control?", [
-    "It can correct for disturbances and model mismatch using feedback.",
-    "It never needs sensors or observations.",
-    "It guarantees global optimality for every robot.",
-    "It removes all actuator limits from the system.",
-  ], 0, "Feedback corrects deviations.", "Closed-loop controllers adapt to actual system behavior instead of assuming the model is perfect.", "Payload changes can be compensated through feedback."),
-  q(1016, "Control", "easy", "Easy", 10, "What is setpoint tracking?", [
-    "Driving the system output to follow a desired reference value.",
-    "Driving the robot state to maximize covariance.",
-    "Driving the battery voltage to equal the sensor noise.",
-    "Driving the map to match the Jacobian matrix.",
-  ], 0, "Follow the reference.", "Setpoint tracking means the controller tries to keep the output close to the commanded target.", "A temperature controller or joint-angle controller both perform setpoint tracking."),
-  q(1017, "Control", "easy", "Easy", 10, "What is actuator saturation?", [
-    "A condition where demanded control exceeds physical actuator limits.",
-    "A condition where sensor noise exceeds filter covariance.",
-    "A condition where robot pose exceeds camera field of view.",
-    "A condition where probability exceeds one.",
-  ], 0, "Physical limits matter.", "Actuators cannot deliver infinite torque, speed or voltage, so commands may clip at physical limits.", "Motor voltage saturation is common in practice."),
-  q(1018, "Control", "easy", "Easy", 10, "What is stability in control?", [
-    "The tendency of a system to remain bounded and return near equilibrium after disturbance.",
-    "The tendency of a system to maximize error after disturbance.",
-    "The tendency of a system to increase battery voltage after disturbance.",
-    "The tendency of a system to randomize its sensor outputs after disturbance.",
-  ], 0, "Bounded behavior.", "A stable system does not diverge uncontrollably when perturbed.", "Balance control for a robot depends critically on stability."),
-  q(1019, "Control", "easy", "Easy", 10, "Why are constraints important in robot control?", [
-    "Robots must obey limits such as torque, speed, angle and safety bounds.",
-    "Constraints only matter in probability theory and not in robots.",
-    "Constraints remove the need for models and sensors.",
-    "Constraints guarantee zero tracking error automatically.",
-  ], 0, "Physical and safety bounds.", "Control design must respect what the robot can safely and physically do.", "Joint-limit and torque-limit handling are common examples."),
-  q(1020, "Control", "easy", "Easy", 10, "What is feedforward control?", [
-    "Using a model or reference information to apply anticipatory control action.",
-    "Using only feedback error and no model information.",
-    "Using only probability distributions without actuation.",
-    "Using only image features to set battery state.",
-  ], 0, "Anticipatory control.", "Feedforward uses expected system behavior to improve tracking before error appears.", "Computed torque control includes a feedforward dynamics term."),
+  // ── CALM: Control ─────────────────────────────────────────────────────────
+  q(1016,"Control","calm","Easy",10,"What does the integral term in a PID controller accumulate and what problem does it solve?",["Time-integral of tracking error, eliminating steady-state bias from disturbances.","Derivative of sensor noise, amplifying high-frequency errors.","Product of proportional gain and current velocity.","Sum of all future reference values."],0,"Integral of error removes constant offsets.","Without integral action, constant disturbances like gravity produce a fixed tracking offset that P and D cannot remove.","Gravity compensation can reduce the need for integral action in joint control."),
+  q(1017,"Control","calm","Easy",10,"What does the Nyquist stability criterion assess from the open-loop frequency response?",["Whether the closed-loop system is stable, via encirclements of the -1 point.","The minimum sampling rate to avoid aliasing.","Maximum PID gains before actuator saturation.","The bandwidth of an anti-aliasing digital filter."],0,"Encirclements of -1 determine closed-loop stability.","The Nyquist plot counts right-half-plane poles of the closed-loop system.","Used alongside Bode plots in classical loop-shaping design."),
+  q(1018,"Control","calm","Easy",10,"What does gain margin quantify in a control system?",["How much open-loop gain can increase before closed-loop instability.","Maximum joint torque the controller can command.","Time delay tolerable before instability.","Ratio of proportional gain to derivative gain."],0,"Gain headroom before instability at phase-crossover frequency.","Gain margin = 1/|G(j*omega_pc)|; common design target is at least 6 dB.","Phase margin and gain margin together characterise robust stability."),
+  q(1019,"Control","calm","Easy",10,"Why is feedforward combined with feedback in precision robot motion control?",["Feedforward cancels known dynamics proactively; feedback corrects residual errors reactively.","Feedforward replaces sensors entirely.","Feedforward increases integral windup to improve disturbance rejection.","Feedforward guarantees global stability regardless of model error."],0,"Anticipate with FF, correct with FB.","Model-based feedforward reduces burden on the feedback loop allowing lower gains and better stability margins.","Computed-torque control uses inverse dynamics as feedforward."),
+  q(1020,"Control","calm","Easy",10,"Why does PD control leave a steady-state error under constant disturbances that PID eliminates?",["PD has no integral action to accumulate and cancel persistent offsets.","PD always overshoots more than PID.","PD is unstable for all robot joints.","PD cannot track step references at all."],0,"No integral means residual bias under constant load.","A constant disturbance like gravity produces a fixed offset that only the integral term can drive to zero.","PD plus gravity compensation feedforward is common in joint controllers."),
+  q(1021,"Control","calm","Medium",15,"What is integral windup and why must it be mitigated?",["The integrator accumulates error during actuator saturation causing large overshoot when the limit is released.","Oscillation caused by excessive derivative gain.","Desired accumulation of integral action near the setpoint.","Measurement noise amplification in the integral branch."],0,"Saturation plus integration equals windup.","When the actuator clips, the integrator keeps growing; anti-windup schemes clamp or back-calculate the integrator state.","Back-calculation and clamping are the two most common anti-windup strategies."),
+  q(1022,"Control","calm","Medium",15,"In state-space x_dot=Ax+Bu, what does full rank of the controllability matrix imply?",["Every state can be driven to any desired value using the input.","All outputs can be measured without noise.","The system is asymptotically stable without control.","All eigenvalues of A lie in the left half-plane."],0,"Full rank means fully controllable.","If rank(C)=n, every state is reachable from the origin; uncontrollable modes cannot be placed by any linear feedback.","LQR and pole placement require controllability."),
+  q(1023,"Control","calm","Medium",15,"What does Lyapunov's direct method prove about a dynamical system?",["If a positive-definite V with V_dot <= 0 exists, the system is stable without solving the ODEs.","If the linearisation is stable, the nonlinear system is globally stable.","Stability holds only for linear time-invariant systems.","The largest eigenvalue of A is negative."],0,"Energy-like function proves stability without ODE solution.","V is a generalised energy; V_dot <= 0 means energy never increases preventing divergence.","Lyapunov functions are the main tool for nonlinear stability proofs."),
+  q(1024,"Control","calm","Medium",15,"What is the separation principle in observer-based control?",["Observer and controller gains can be designed independently for linear systems.","Separating P and D gains always stabilises any system.","Observers must be designed before controllers in all nonlinear cases.","Integral action must always be placed last in the control loop."],0,"Design observer and controller independently.","For LTI systems, closed-loop eigenvalues equal controller poles union observer poles; LQG exploits this.","The principle breaks down for nonlinear systems in general."),
+  q(1025,"Control","calm","Medium",15,"In model predictive control, what is the receding-horizon principle?",["Solve a finite-horizon optimisation each step and apply only the first control; shift the horizon and repeat.","The horizon grows over time until the terminal state is reached.","The receding horizon replaces the need for a dynamic model.","It sets the integral time constant of the embedded PID."],0,"Solve, apply first input, shift horizon, repeat.","MPC re-solves at each timestep with updated state combining feedforward optimality and feedback robustness.","Warm-starting the previous solution reduces solve time significantly."),
+  q(1026,"Control","calm","Hard",20,"Why does collocated control provide a passivity advantage?",["Collocated input-output pairs are passive, guaranteeing stability for any positive gain.","Collocated sensors are always more accurate than remote sensors.","Non-collocated control is unstable only at high frequency.","Collocated control removes the need for model-based feedforward."],0,"Passivity guarantees unconditional stability.","Collocation creates a transfer function with alternating poles and zeros making the system passive and robustly stable.","Flexible robot joints exploit collocation to avoid spillover instability."),
+  q(1027,"Control","calm","Hard",20,"How does H-infinity control differ from LQR in its treatment of disturbances?",["H-infinity minimises worst-case disturbance amplification; LQR minimises expected quadratic cost under Gaussian noise.","H-infinity assumes no disturbances; LQR assumes adversarial disturbances.","H-infinity requires full state feedback; LQR requires only output feedback.","Both use identical Riccati equations differing only in weighting matrices."],0,"Worst-case vs average-case disturbance treatment.","H-infinity solves a min-max game against worst-case L2-bounded disturbances; LQR uses a stochastic average-cost criterion.","Robust robot controllers often use H-infinity to handle modelling uncertainty."),
+  q(1028,"Control","calm","Hard",20,"In impedance control for robot interaction, what physical quantity is regulated?",["The dynamic relationship (mass-spring-damper) between end-effector force and position deviation.","Absolute joint torques to follow a fixed reference trajectory.","Cartesian acceleration regardless of contact forces.","Time-integral of contact force over the interaction."],0,"Force-displacement dynamics: Z(s) = F(s)/X_dot(s).","Impedance control shapes how stiff or compliant the robot feels to external forces enabling safe human-robot interaction.","Collaborative robots and surgical tools rely on impedance control."),
+  q(1029,"Control","calm","Hard",20,"Why does pure time delay reduce stability margins in a feedback loop?",["It contributes phase lag of -omega*tau that grows without bound as frequency increases eroding phase margin.","Time delay increases gain margin by preventing high-frequency oscillation.","Time delay shifts all poles leftward improving stability.","Delay only affects the integral branch not P or D terms."],0,"Phase lag grows unboundedly with frequency.","A pure delay is all-pass with phase -omega*tau; at the gain-crossover frequency this lag can consume the entire phase margin.","Network-controlled robots must explicitly account for communication latency."),
+  q(1030,"Control","calm","Hard",20,"What makes the flexible-joint robot model require two separate dynamic subsystems?",["Link-side and motor-side dynamics are elastically coupled doubling the state dimension and introducing resonance modes.","Flexible joints need separate friction models per joint.","Two models are needed for prismatic and revolute joints respectively.","One model handles heavy links; another handles the lightweight end-effector."],0,"Elastic coupling: link-side plus motor-side states.","Torsional spring between motor and link introduces motor angle, link angle, and resonant modes absent in rigid models.","Singular perturbation and two-DOF controllers address flexible joint dynamics."),
 
-  // EASY — SLAM & Estimation
-  q(1021, "SLAM & Estimation", "easy", "Easy", 10, "What is the main goal of SLAM?", [
-    "To estimate robot pose while simultaneously building a map.",
-    "To estimate motor current while simultaneously building a controller.",
-    "To estimate battery state while simultaneously building a planner.",
-    "To estimate camera intrinsics while simultaneously building a dataset.",
-  ], 0, "Localization plus mapping.", "SLAM stands for Simultaneous Localization and Mapping and solves both problems together.", "A robot in an unknown building often relies on SLAM."),
-  q(1022, "SLAM & Estimation", "easy", "Easy", 10, "What is odometry?", [
-    "An estimate of motion obtained from onboard sensors over time.",
-    "An estimate of battery life obtained from charging history.",
-    "An estimate of image segmentation obtained from labels.",
-    "An estimate of control gain obtained from optimization.",
-  ], 0, "Incremental motion estimate.", "Odometry tracks relative motion from wheel encoders, visual features, inertial sensors or similar sources.", "It is useful but usually drifts over time."),
-  q(1023, "SLAM & Estimation", "easy", "Easy", 10, "What is a Kalman filter used for?", [
-    "Recursive state estimation from noisy measurements and a system model.",
-    "Recursive trajectory optimization from noiseless measurements only.",
-    "Recursive battery control from image segmentation.",
-    "Recursive joint calibration from end-effector torque only.",
-  ], 0, "Prediction plus update.", "A Kalman filter combines model prediction and observation correction for linear-Gaussian systems.", "It is widely used for robotics state estimation."),
-  q(1024, "SLAM & Estimation", "easy", "Easy", 10, "What is sensor fusion?", [
-    "Combining information from multiple sensors to improve estimation.",
-    "Combining multiple actuators to reduce battery use.",
-    "Combining multiple maps to eliminate all uncertainty.",
-    "Combining multiple reward functions to form one controller.",
-  ], 0, "Multiple sensors, better estimate.", "Different sensors provide complementary information and failure modes, so fusion improves robustness.", "IMU plus camera plus wheel encoder fusion is common."),
-  q(1025, "SLAM & Estimation", "easy", "Easy", 10, "What is loop closure in SLAM?", [
-    "Recognizing a previously visited place to reduce accumulated drift.",
-    "Recognizing a previously visited control law to increase reward.",
-    "Recognizing a previously visited Jacobian to remove torque.",
-    "Recognizing a previously visited battery state to reset the map.",
-  ], 0, "Revisiting a place.", "Loop closure adds constraints when the robot detects it has returned to a known location.", "This helps correct map and trajectory drift."),
-  q(1026, "SLAM & Estimation", "easy", "Easy", 10, "What is a state estimate?", [
-    "The robot's best current guess of variables such as pose or velocity.",
-    "The robot's best current guess of only battery chemistry.",
-    "The robot's best current guess of only neural-network architecture.",
-    "The robot's best current guess of only workspace size.",
-  ], 0, "Best guess under uncertainty.", "State estimation aims to recover hidden variables needed for control and planning.", "Pose, velocity and bias are common estimated states."),
-  q(1027, "SLAM & Estimation", "easy", "Easy", 10, "Why does odometry drift over time?", [
-    "Small errors accumulate when motion increments are integrated repeatedly.",
-    "Because odometry has perfect corrections at every time step.",
-    "Because covariance always goes to zero during motion.",
-    "Because SLAM removes all process noise instantly.",
-  ], 0, "Accumulated error.", "Even small measurement or modeling errors cause long-term drift if not corrected by external observations.", "Wheel slip is a classic source of odometric drift."),
-  q(1028, "SLAM & Estimation", "easy", "Easy", 10, "What does EKF stand for?", [
-    "Extended Kalman Filter.",
-    "Estimated Kinematic Function.",
-    "Embedded Kernel Framework.",
-    "Expected Koopman Feature.",
-  ], 0, "Nonlinear extension of KF.", "The Extended Kalman Filter handles nonlinear systems by locally linearizing them.", "It is used in many robotics estimation pipelines."),
-  q(1029, "SLAM & Estimation", "easy", "Easy", 10, "Why are landmarks useful in localization?", [
-    "They provide reference features the robot can reobserve to estimate its pose.",
-    "They provide direct actuator torques for controller tuning.",
-    "They provide battery voltages for navigation correction.",
-    "They provide learning labels for Jacobian estimation.",
-  ], 0, "Reference features.", "Landmarks help anchor the robot's estimate to the environment.", "AprilTags or visual corners often act as landmarks."),
-  q(1030, "SLAM & Estimation", "easy", "Easy", 10, "What is measurement noise?", [
-    "Random uncertainty or corruption in sensor observations.",
-    "Deterministic control effort applied to the actuators.",
-    "Guaranteed bias-free information from the environment.",
-    "Rigid-body motion caused by wheel rotation.",
-  ], 0, "Sensor uncertainty.", "Real sensors are imperfect, so readings often include random error and disturbances.", "Filters explicitly model measurement noise."),
+  // ── CALM: SLAM & Estimation ───────────────────────────────────────────────
+  q(1031,"SLAM & Estimation","calm","Easy",10,"What makes SLAM computationally harder than pure localisation with a known map?",["Map and pose are jointly unknown creating a coupled high-dimensional inference problem.","SLAM requires GPS; localisation does not.","SLAM only works in 2D; localisation works in 3D.","SLAM eliminates loop closure by maintaining a perfect map."],0,"Joint map and pose uncertainty.","In localisation the map is given; in SLAM both must be estimated simultaneously coupling their uncertainties.","EKF-SLAM and graph-SLAM are classical approaches."),
+  q(1032,"SLAM & Estimation","calm","Easy",10,"What does loop closure accomplish in a SLAM factor graph?",["Adds a constraint correcting accumulated drift when a previously visited location is re-observed.","Connects first and last map nodes to close the map boundary.","Removes outlier landmarks to reduce memory usage.","Terminates the filter when the robot returns to its start pose."],0,"Drift correction via revisit constraint.","Without loop closure, odometric error grows; a recognised revisit provides a high-quality pose constraint.","Pose-graph optimisation distributes the correction globally."),
+  q(1033,"SLAM & Estimation","calm","Easy",10,"In a Kalman filter, what is the innovation (measurement residual)?",["Difference between actual and predicted measurements driving the state correction.","Total accumulated odometry error since initialisation.","Derivative of the covariance matrix with respect to time.","Change in map between two timesteps."],0,"y = z - H*x_hat_minus is the innovation.","The Kalman gain weights how much the innovation corrects the predicted state.","The innovation covariance S = HPH^T + R determines the gain magnitude."),
+  q(1034,"SLAM & Estimation","calm","Easy",10,"Why is the Extended Kalman Filter only a first-order approximation for nonlinear systems?",["It linearises nonlinear functions via Jacobians discarding higher-order Taylor terms.","It extends the state vector to include all nonlinear terms explicitly.","It uses Monte Carlo samples to represent the distribution.","It applies Bayes rule exactly by discretising the state space."],0,"Jacobian linearisation truncates the Taylor series.","EKF applies standard Kalman equations to locally linearised dynamics; errors accumulate when nonlinearity is strong.","The Unscented KF propagates sigma points to capture second-order statistics."),
+  q(1035,"SLAM & Estimation","calm","Easy",10,"What is the primary advantage of a particle filter over a Kalman filter?",["It can represent arbitrary non-Gaussian multimodal distributions over state.","It is always more computationally efficient.","It requires no motion model for propagation.","It eliminates the need for resampling under measurement noise."],0,"Non-Gaussian multimodal beliefs.","Particles are weighted samples from p(x); no Gaussian assumption is needed allowing complex posteriors.","The kidnapped-robot problem benefits from particle-based representations."),
+  q(1036,"SLAM & Estimation","calm","Medium",15,"In factor graph SLAM, what do variables and factors represent?",["Variables: unknown poses or landmarks; factors: probabilistic constraints from measurements or motion.","Variables: sensor readings; factors: joint angles.","Variables: map cells; factors: sensor noise covariances.","Variables: control inputs; factors: Jacobians of the observation model."],0,"Unknowns vs probabilistic constraints.","Factor graphs separate what we estimate (variables) from the probabilistic information tying them (factors) enabling efficient sparse inference.","iSAM2 exploits this sparsity with incremental Bayes-tree updates."),
+  q(1037,"SLAM & Estimation","calm","Medium",15,"What property of the information matrix in graph-SLAM makes sparse linear solvers efficient?",["Observations only link nearby poses or landmarks creating few non-zero off-diagonal entries.","Every pose directly observes every other pose making it dense.","The information matrix is always diagonal for 3D SLAM.","Sparse structure arises only with a single sensor type."],0,"Local constraints create banded sparse structure.","Each factor connects only the variables it involves; in typical trajectories this produces a sparse banded pattern.","Sparse Cholesky factorisation makes large-scale SLAM tractable."),
+  q(1038,"SLAM & Estimation","calm","Medium",15,"What does the Mahalanobis distance measure in data association?",["Normalised distance accounting for measurement covariance enabling consistent gating.","Euclidean distance between two 3D landmarks.","Number of standard deviations a pose is from the prior.","Norm of the innovation divided by its dimension."],0,"Covariance-weighted distance.","d^2 = y^T S^{-1} y; it normalises residuals by their uncertainty avoiding false matches in noisy environments.","Nearest-neighbour data association uses Mahalanobis gating."),
+  q(1039,"SLAM & Estimation","calm","Medium",15,"Why does LiDAR odometry degrade in geometrically symmetric environments?",["The scan-matching Hessian becomes ill-conditioned along directions with no geometric variation making motion unobservable.","LiDAR degeneracy only occurs underwater.","The point cloud exceeds the ICP memory buffer causing resets.","Symmetry causes false loop closures."],0,"Ill-conditioned Hessian along featureless directions.","In tunnels or corridors, scan matching cannot resolve motion along the symmetric axis; the Hessian eigenvalue approaches zero.","LOAM detects and handles degenerate directions explicitly."),
+  q(1040,"SLAM & Estimation","calm","Hard",20,"How does the Unscented Transform reduce linearisation error compared to EKF?",["It propagates deterministically chosen sigma points through the nonlinear function capturing second-order statistics.","It replaces Jacobians with finite-difference gradients.","It uses random samples like a particle filter but with fixed count.","It applies exact Bayesian updates by discretising the state space."],0,"Sigma points capture higher-order moments.","The UT matches mean and covariance of the true transformed distribution to third order for Gaussian inputs vs first order for EKF.","UKF outperforms EKF for strongly curved observation models."),
+  q(1041,"SLAM & Estimation","calm","Hard",20,"Why does resampling in a particle filter cause sample impoverishment and how is it mitigated?",["Resampling duplicates high-weight particles collapsing diversity; roughening or MCMC rejuvenation steps restore it.","Resampling always improves diversity by drawing fresh samples from the prior.","Impoverishment is only a problem with fewer than 10 particles.","It is mitigated by increasing measurement noise covariance after resampling."],0,"Duplication collapses particle diversity.","After resampling, multiple identical particles cluster around modes; small MCMC perturbations diversify the set.","Rao-Blackwellised particle filters reduce the sample count needed."),
+  q(1042,"SLAM & Estimation","calm","Hard",20,"What observability condition must monocular visual-inertial odometry satisfy to initialise correctly?",["Sufficient excitation with non-zero acceleration and rotation to make metric scale and IMU biases observable.","The camera must observe at least three co-planar landmarks.","The IMU must be pre-calibrated to machine precision before any motion.","The robot must start from a known pose with a known map."],0,"Excitation makes scale observable.","Monocular cameras cannot recover metric scale from pure rotation; translational acceleration coupled with IMU data makes scale observable.","VIO initialisation sequences intentionally include rotational and translational motion."),
+  q(1043,"SLAM & Estimation","calm","Hard",20,"What is the MAP estimate in Bayesian SLAM and how does it differ from ML?",["MAP includes the prior over state; ML maximises only the observation likelihood ignoring the prior.","MAP maximises the likelihood; ML includes the prior.","Both are identical when the prior is uninformative.","MAP is used for landmarks; ML is used for robot poses."],0,"MAP is posterior mode; ML is likelihood mode.","MAP = argmax p(x|z) proportional to p(z|x)*p(x); ML = argmax p(z|x) dropping the prior term.","Graph-SLAM solves MAP inference; geometric scan-matching is closer to ML."),
+  q(1044,"SLAM & Estimation","calm","Hard",20,"Why does the information matrix in EKF-SLAM become denser as more loop closures are added?",["Each loop closure links distant poses adding off-diagonal entries that propagate via matrix updates.","The information matrix becomes sparser with loop closures because constraints reduce uncertainty.","Information matrix density is independent of loop closure count.","Density increases because new landmarks add diagonal blocks only."],0,"Distant pose links add off-diagonal entries.","A loop closure between pose i and pose j creates a non-zero block (i,j) in the information matrix increasing fill-in.","Sparse approximations like SEIF and iSAM truncate small information entries."),
+  q(1045,"SLAM & Estimation","calm","Hard",20,"How does factor graph inference handle both pose estimation and map building simultaneously?",["Variables representing poses and landmarks are connected by measurement factors; joint MAP inference over all variables solves SLAM.","Factor graphs solve only the mapping problem; localisation is handled separately.","Factor graphs require a known initial pose to initialise correctly.","Factor graph inference is only tractable for 2D SLAM problems."],0,"Joint MAP over all variables solves SLAM.","Pose and landmark variables are connected by odometry and observation factors; batch or incremental inference finds the joint MAP estimate.","GTSAM and g2o implement efficient factor graph SLAM solvers."),
 
-  // EASY — Dynamics
-  q(1031, "Dynamics", "easy", "Easy", 10, "What does robot dynamics study?", [
-    "How forces and torques cause robot motion.",
-    "How colors and textures cause image segmentation.",
-    "How labels and datasets cause classification.",
-    "How battery chemistry causes symbolic reasoning.",
-  ], 0, "Motion from forces.", "Dynamics connects forces, torques, inertia and acceleration.", "It goes beyond purely geometric kinematics."),
-  q(1032, "Dynamics", "easy", "Easy", 10, "What is torque?", [
-    "A rotational effect of a force about an axis.",
-    "A translational effect of a force along a line.",
-    "A probabilistic effect of noise on a filter.",
-    "A visual effect of light on a camera.",
-  ], 0, "Rotational analogue of force.", "Torque describes how strongly a force tends to rotate a body about a point or axis.", "Motor torques drive robot joints."),
-  q(1033, "Dynamics", "easy", "Easy", 10, "What is inertia?", [
-    "Resistance of a body to changes in its motion.",
-    "Ability of a body to amplify all control signals.",
-    "Probability of a body remaining at zero velocity.",
-    "Color response of a sensor to incoming light.",
-  ], 0, "Resistance to acceleration.", "Inertia quantifies how difficult it is to change translational or rotational motion.", "Heavier or more spread-out bodies generally have higher inertia effects."),
-  q(1034, "Dynamics", "easy", "Easy", 10, "What does gravity compensation do?", [
-    "Applies control effort to counteract gravitational loading.",
-    "Removes all measurement noise from the control loop.",
-    "Makes the inertia matrix constant at all configurations.",
-    "Converts kinematics directly into reinforcement learning.",
-  ], 0, "Counteracts weight.", "Gravity compensation reduces the effort needed to hold or track positions against gravity.", "Robot arms often use model-based gravity compensation."),
-  q(1035, "Dynamics", "easy", "Easy", 10, "What is inverse dynamics?", [
-    "Computing required torques from desired motion and a dynamic model.",
-    "Computing desired motion from required image labels.",
-    "Computing sensor noise from required torques.",
-    "Computing probability distributions from required acceleration only.",
-  ], 0, "Desired motion in, torques out.", "Inverse dynamics calculates the actuation needed to produce a target acceleration, velocity or trajectory.", "It is common in model-based robot control."),
-  q(1036, "Dynamics", "easy", "Easy", 10, "Why do robot links exhibit dynamic coupling?", [
-    "Motion in one joint can affect forces and torques in other joints.",
-    "Motion in one joint removes all forces in other joints.",
-    "Motion in one joint changes camera calibration in other joints.",
-    "Motion in one joint makes the robot fully linear everywhere.",
-  ], 0, "Multi-body interaction.", "Because links are mechanically connected, accelerating one part of the robot influences others.", "This is important in fast manipulator motion."),
-  q(1037, "Dynamics", "easy", "Easy", 10, "What is damping?", [
-    "An effect that dissipates energy and reduces oscillation.",
-    "An effect that increases energy and amplifies oscillation.",
-    "An effect that removes mass from the robot model.",
-    "An effect that converts torque directly into probability.",
-  ], 0, "Dissipative effect.", "Damping opposes motion and helps reduce vibrations or overshoot.", "Mechanical systems often rely on damping for smoother behavior."),
-  q(1038, "Dynamics", "easy", "Easy", 10, "What is the difference between kinematics and dynamics?", [
-    "Kinematics describes motion geometry, while dynamics relates motion to forces.",
-    "Kinematics describes forces, while dynamics describes only camera images.",
-    "Kinematics describes probabilities, while dynamics describes labels.",
-    "Kinematics describes optimization, while dynamics describes translation only.",
-  ], 0, "Geometry vs causes.", "Kinematics says how things move; dynamics says why they move under applied forces and torques.", "Both are central in robotics."),
-  q(1039, "Dynamics", "easy", "Easy", 10, "Why does mass distribution matter in robot motion?", [
-    "It changes the robot's inertia and resistance to acceleration.",
-    "It changes the robot's camera intrinsics directly.",
-    "It changes the robot's probability distributions only.",
-    "It changes the robot's reward function automatically.",
-  ], 0, "Where the mass sits matters.", "Not just total mass but how that mass is distributed affects rotational and translational behavior.", "A stretched-out arm feels dynamically different from a tucked one."),
-  q(1040, "Dynamics", "easy", "Easy", 10, "What is friction in robot dynamics?", [
-    "A resistive force or torque opposing relative motion.",
-    "A force that always increases acceleration without energy loss.",
-    "A probability distribution over robot states.",
-    "A coordinate transformation between moving frames.",
-  ], 0, "Opposes motion.", "Friction can be useful or harmful, but it generally resists relative sliding or rotation.", "Wheel slip and joint stiction are common friction phenomena."),
+  // ── CALM: Dynamics ────────────────────────────────────────────────────────
+  q(1046,"Dynamics","calm","Easy",10,"In the Euler-Lagrange robot equation, what does C(q,q_dot)*q_dot represent?",["Centripetal and Coriolis forces arising from joint velocities.","Gravitational potential energy gradient.","Motor friction torque opposing joint motion.","Inertia matrix multiplied by joint acceleration."],0,"Velocity-dependent coupling forces.","C(q,q_dot) contains Christoffel symbols; its product with q_dot captures forces due to rotation and coupling between joints.","These terms grow quadratically with velocity and matter most at high speeds."),
+  q(1047,"Dynamics","calm","Easy",10,"What property of the robot inertia matrix M(q) is exploited in model-based control?",["M(q) is symmetric and positive definite for all configurations ensuring invertibility.","M(q) is diagonal for all serial-chain robots.","M(q) is constant independent of joint angles.","det(M) equals total robot mass."],0,"Symmetric positive definite.","Symmetry comes from reciprocal inertia coupling; positive definiteness means kinetic energy is always positive.","These properties enable stable computed-torque control designs."),
+  q(1048,"Dynamics","calm","Easy",10,"What does the skew-symmetry property (M_dot - 2C) enable in robot dynamics analysis?",["It proves robot dynamics are passive since x_dot^T*(M_dot/2 - C)*x_dot = 0.","It proves the Coriolis matrix is always zero for planar robots.","It shows the gravity vector is orthogonal to the Coriolis matrix.","It proves M(q) is independent of joint velocities."],0,"Passivity proof via skew-symmetry.","M_dot = C + C^T means the robot is passive; this is the foundation of many adaptive and robust controllers.","Passivity-based control exploits this without needing exact model parameters."),
+  q(1049,"Dynamics","calm","Easy",10,"Why is the Newton-Euler recursive algorithm preferred for real-time inverse dynamics?",["It uses forward/backward recursion with O(n) complexity vs O(n^3) for Lagrangian formulation.","It is always more numerically accurate than the Lagrangian method.","It eliminates the need for Coriolis and gravity terms.","It works only for tree-structure robots not serial chains."],0,"O(n) recursive passes vs O(n^3) Lagrangian.","Newton-Euler sweeps outward (velocities/accelerations) then inward (forces/torques) making it efficient for real-time control.","Pinocchio and RBDL implement Newton-Euler for high-speed control loops."),
+  q(1050,"Dynamics","calm","Medium",15,"Why does the apparent inertia of a robot arm change with configuration even though no masses change?",["Inertia depends on the distribution of mass relative to joint axes which changes as links move.","The gravitational field direction changes in the robot frame.","Friction coefficients are configuration-dependent.","Motor back-EMF varies with joint angle."],0,"Second moments of mass about joint axes change with configuration.","The inertia matrix M(q) encodes second moments; as q changes these moments change because mass is distributed differently relative to each axis.","A stretched-out arm has higher distal inertia than a tucked configuration."),
+  q(1051,"Dynamics","calm","Medium",15,"What is the key difference between static (stiction) and kinetic (Coulomb) friction in joint dynamics?",["Static friction must be overcome to initiate motion and is larger; kinetic friction opposes sliding and is lower.","Coulomb friction is velocity-dependent; static friction is proportional to normal force only.","Static friction is modelled as a spring; Coulomb friction as a dashpot.","Both are identical but applied at different joint velocities."],0,"Break-away force vs sliding resistance.","Stiction holds the joint still until a threshold torque is exceeded; kinetic Coulomb friction then acts during motion.","Stiction causes micro-positioning errors in precise manipulation tasks."),
+  q(1052,"Dynamics","calm","Medium",15,"How does the principle of virtual work relate joint torques to end-effector forces?",["Virtual work equality gives tau = J^T * F mapping Cartesian wrenches to joint torques.","Virtual work states that internal forces do no work if constraints are holonomic.","It provides the minimum-energy path between two configurations.","It equates kinetic energy to potential energy along any trajectory."],0,"Equal virtual work: tau = J^T * F.","This duality of the Jacobian transpose is the basis of force control and impedance control design.","The same J used for velocity mapping maps forces in the transpose direction."),
+  q(1053,"Dynamics","calm","Hard",20,"What does the operational-space inertia Lambda = (J*M^{-1}*J^T)^{-1} represent?",["The effective inertia seen by Cartesian-space forces applied at the end effector.","The joint-space inertia projected onto the Cartesian axes.","The covariance of end-effector position errors under Gaussian joint noise.","The inverse of the manipulability ellipsoid."],0,"Task-space inertia decouples Cartesian dynamics.","Lambda maps Cartesian forces directly to Cartesian accelerations: F = Lambda*x_ddot + mu + p enabling independent axis control.","Modern whole-body controllers for humanoids build on this operational-space formulation."),
+  q(1054,"Dynamics","calm","Hard",20,"Why does impact dynamics require an impulsive force model rather than a continuous one?",["Contact forces are infinite for an infinitesimal duration; only their impulse (time integral) is finite and physically meaningful.","Impact forces are zero because kinetic energy is conserved exactly.","Continuous models apply only to soft contacts; impulsive to stiff contacts.","Impact dynamics only arises in aerial robots."],0,"Infinite force times infinitesimal time equals finite impulse.","During a rigid impact, velocity changes discontinuously; the impulse F*delta_t governed by the restitution coefficient is the relevant quantity.","Legged robot touchdown is modelled using impulsive contact mechanics."),
+  q(1055,"Dynamics","calm","Hard",20,"Why is the manipulator equation said to be linear in the inertial parameters?",["It can be rewritten as Y(q,q_dot,q_ddot)*pi = tau where Y is a regressor and pi is a parameter vector.","All terms are linear functions of joint angles.","The inertia matrix is always constant.","Gravity g(q) is linear in q making the whole equation linear."],0,"Regressor matrix Y times parameter vector pi equals tau.","Linearity in parameters enables adaptive control: pi is estimated online while Y is computed from measured trajectories.","This is the foundation of model-identification and adaptive robot control."),
+  q(1056,"Dynamics","calm","Hard",20,"What is the Centroidal Dynamics Model used for in legged robot control?",["It describes total linear and angular momentum about the centre of mass decoupled from joint-level details.","It models contact forces at each foot using Coulomb friction cones.","It replaces full multibody dynamics with a linear spring-mass model.","It describes only gravitational potential energy for balance control."],0,"6D aggregate momentum about CoM.","The centroidal model captures whole-body behaviour compactly enabling fast MPC for legged locomotion planning.","MIT Cheetah and ANYmal use centroidal MPC for real-time gait planning."),
 
-  // EASY — Perception
-  q(1041, "Perception", "easy", "Easy", 10, "Why is camera calibration important?", [
-    "It recovers imaging parameters needed for geometric reasoning from pixels.",
-    "It removes all uncertainty from robot localization.",
-    "It converts joint torque directly into image depth.",
-    "It guarantees object detection without training data.",
-  ], 0, "Geometry from images.", "Calibration determines parameters such as focal length and distortion so image measurements can be interpreted correctly.", "Without calibration, 3D reconstruction is inaccurate."),
-  q(1042, "Perception", "easy", "Easy", 10, "What is image segmentation?", [
-    "Partitioning an image into meaningful regions or class labels.",
-    "Partitioning a robot arm into torque regions or force labels.",
-    "Partitioning a covariance matrix into battery regions.",
-    "Partitioning a reward signal into velocity classes.",
-  ], 0, "Labeling image regions.", "Segmentation assigns semantics to pixels or regions of an image.", "Robots use it to distinguish objects, floor and obstacles."),
-  q(1043, "Perception", "easy", "Easy", 10, "Why is depth sensing useful for robots?", [
-    "It provides geometric distance information about the scene.",
-    "It directly provides actuator torque information about the scene.",
-    "It directly provides reward information about the scene.",
-    "It directly provides covariance gradients about the scene.",
-  ], 0, "Distance to objects.", "Depth sensors help robots understand 3D structure for navigation and manipulation.", "An RGB-D camera is a common example."),
-  q(1044, "Perception", "easy", "Easy", 10, "What is visual odometry?", [
-    "Estimating motion by analyzing changes across image frames.",
-    "Estimating torque by analyzing changes across motor currents.",
-    "Estimating probability by analyzing changes across rewards.",
-    "Estimating kinematics by analyzing changes across battery voltages.",
-  ], 0, "Motion from images.", "Visual odometry tracks visual changes over time to infer camera or robot motion.", "It is useful in GPS-denied environments."),
-  q(1045, "Perception", "easy", "Easy", 10, "What is a point cloud?", [
-    "A collection of 3D points representing sampled scene geometry.",
-    "A collection of 2D labels representing sampled reward geometry.",
-    "A collection of torques representing sampled actuator geometry.",
-    "A collection of probabilities representing sampled battery geometry.",
-  ], 0, "3D sampled structure.", "Point clouds are common outputs of lidar, depth cameras and reconstruction systems.", "They are widely used for mapping and obstacle detection."),
-  q(1046, "Perception", "easy", "Easy", 10, "Why is lighting variation hard for vision systems?", [
-    "Because object appearance can change even when geometry stays the same.",
-    "Because lighting changes always improve segmentation accuracy.",
-    "Because lighting eliminates shadows and reflections automatically.",
-    "Because lighting has no effect on camera measurements.",
-  ], 0, "Appearance changes.", "Vision systems can struggle when brightness, shadows or reflections vary across environments.", "Robust models and preprocessing help reduce this sensitivity."),
-  q(1047, "Perception", "easy", "Easy", 10, "What is sensor fusion in perception?", [
-    "Combining multiple sensing modalities to improve scene understanding.",
-    "Combining multiple actuators to improve scene understanding.",
-    "Combining multiple reward signals to improve scene understanding.",
-    "Combining multiple battery models to improve scene understanding.",
-  ], 0, "Complementary sensing.", "Fusing camera, lidar, radar or IMU data can improve robustness and accuracy.", "Self-driving stacks often rely heavily on sensor fusion."),
-  q(1048, "Perception", "easy", "Easy", 10, "What is object detection?", [
-    "Finding and classifying objects in an image or scene.",
-    "Finding and classifying torques in a dynamics equation.",
-    "Finding and classifying states in a covariance matrix.",
-    "Finding and classifying rewards in a policy network.",
-  ], 0, "Locate and classify objects.", "Object detection predicts object categories and often bounding boxes or regions.", "Robots use it for picking, navigation and scene understanding."),
-  q(1049, "Perception", "easy", "Easy", 10, "Why are extrinsic parameters important?", [
-    "They describe how a sensor is positioned relative to the robot or another sensor.",
-    "They describe how a loss function is positioned relative to the optimizer.",
-    "They describe how a battery is positioned relative to the joint torque.",
-    "They describe how a reward is positioned relative to the covariance matrix.",
-  ], 0, "Sensor-to-robot transform.", "Extrinsic calibration tells the robot where the sensor sits in a common frame.", "This is essential for multi-sensor fusion."),
-  q(1050, "Perception", "easy", "Easy", 10, "What is feature extraction in computer vision?", [
-    "Computing informative descriptors or structures from image data.",
-    "Computing informative torques or currents from image data.",
-    "Computing informative rewards or gradients from image data.",
-    "Computing informative masses or inertias from image data.",
-  ], 0, "Useful image cues.", "Feature extraction identifies patterns such as corners, textures or learned descriptors that are useful for later tasks.", "Many perception pipelines begin with feature extraction or learned representations."),
-  // EASY — Machine Learning
-  q(1, "Machine Learning", "easy", "Easy", 10, "What does supervised learning require?", [
-    "Training data with input-output label pairs.",
-    "Training data with only unlabeled input samples.",
-    "Training data with only reward trajectories.",
-    "Training data with only latent state vectors.",
-  ], 0, "Think labels.", "Supervised learning learns a mapping from inputs to outputs using labeled examples.", "Object detection datasets pair images with bounding-box or class labels."),
-  q(2, "Machine Learning", "easy", "Easy", 10, "Why are convolutional neural networks useful in robot vision?", [
-    "They exploit local spatial structure in images.",
-    "They eliminate the need for training data in images.",
-    "They directly compute dynamic equations from images.",
-    "They replace probability models in all vision pipelines.",
-  ], 0, "Think image filters and locality.", "CNNs use shared filters to capture local image patterns such as edges, corners and textures efficiently.", "A mobile robot camera pipeline often uses CNNs for detection or segmentation."),
-  q(3, "Machine Learning", "easy", "Easy", 10, "What is overfitting in machine learning?", [
-    "Performing well on training data but poorly on unseen data.",
-    "Performing poorly on training data but well on unseen data.",
-    "Performing equally on training and unseen data by construction.",
-    "Performing only on reinforcement-learning datasets.",
-  ], 0, "Generalization is the keyword.", "Overfitting happens when a model memorizes training patterns instead of learning features that generalize.", "A robot vision model trained only in one lab may fail outdoors."),
-  q(4, "Machine Learning", "easy", "Easy", 10, "Why is train-validation-test splitting important?", [
-    "It helps measure generalization without evaluating only on training data.",
-    "It guarantees a model will never overfit the training data.",
-    "It removes the need for hyperparameter tuning entirely.",
-    "It ensures all classes have identical loss values.",
-  ], 0, "Evaluation should be separated from training.", "Separate splits help tune models and estimate real-world performance more honestly.", "A grasp classifier can look strong on training images but fail on held-out scenes."),
-  q(5, "Machine Learning", "easy", "Easy", 10, "What does a loss function do during training?", [
-    "It quantifies prediction error so model parameters can be updated.",
-    "It directly stores learned parameters after each epoch.",
-    "It converts labels into actuator commands for robots.",
-    "It removes all gradient noise from optimization.",
-  ], 0, "It measures how wrong the prediction is.", "A loss function provides the optimization objective used to improve the model.", "Cross-entropy is common for classification tasks."),
-  q(6, "Machine Learning", "easy", "Easy", 10, "What is a feature in machine learning?", [
-    "An informative input variable used by a model.",
-    "An informative output label produced by a model.",
-    "A hidden optimizer step produced by a model.",
-    "A final loss value used as robot state.",
-  ], 0, "Feature means useful signal in the input.", "Features are measurable properties or learned representations used to make predictions.", "Image edges, depth values or IMU statistics can all be features."),
-  q(7, "Machine Learning", "easy", "Easy", 10, "Why is normalization often applied before training a model?", [
-    "It improves numerical stability and helps optimization behave better.",
-    "It removes the need for model initialization entirely.",
-    "It guarantees the model will achieve zero training error.",
-    "It converts supervised problems into reinforcement learning.",
-  ], 0, "Optimization becomes easier with scaled inputs.", "Normalization keeps input magnitudes in a comparable range, which usually helps gradient-based training.", "Sensor streams with very different scales can otherwise dominate updates."),
-  q(8, "Machine Learning", "easy", "Easy", 10, "What does classification mean in machine learning?", [
-    "Assigning an input to one of several discrete categories.",
-    "Assigning an input to a continuous scalar trajectory.",
-    "Assigning an optimizer to one of several gradient steps.",
-    "Assigning a robot to one of several dynamic equations.",
-  ], 0, "Discrete labels.", "Classification predicts class labels such as obstacle/not obstacle or object category.", "A robot may classify images into corridor, stairway or doorway."),
-  q(9, "Machine Learning", "easy", "Easy", 10, "What is the purpose of data augmentation in robot perception?", [
-    "To improve robustness by varying the training examples.",
-    "To reduce the dataset size by removing variations.",
-    "To force all inputs into the same feature vector.",
-    "To convert regression tasks into segmentation tasks.",
-  ], 0, "Think flips, crops, lighting changes.", "Augmentation creates diverse training views so the model generalizes better to real environments.", "Robots face changes in pose, lighting and scale, so augmented training helps."),
-  q(10, "Machine Learning", "easy", "Easy", 10, "What does reinforcement learning mainly optimize?", [
-    "Long-term cumulative reward over interactions.",
-    "Immediate supervised label accuracy only.",
-    "The determinant of the covariance matrix only.",
-    "A fixed trajectory independent of reward.",
-  ], 0, "Rewards across time matter.", "Reinforcement learning optimizes behavior by maximizing expected return over time.", "A robot can learn navigation policies from success and failure signals."),
+  // ── CALM: Perception ──────────────────────────────────────────────────────
+  q(1057,"Perception","calm","Easy",10,"What does the pinhole camera model describe?",["3D world points projected to 2D image coordinates through a focal centre via perspective projection.","3D forces mapped to 2D torques via a Jacobian transform.","Pixel coordinates converted to depth via stereo triangulation.","World points mapped to joint angles via inverse kinematics."],0,"Perspective projection through a focal centre.","Intrinsic matrix K maps homogeneous 3D points to pixel coordinates.","Camera calibration recovers K and distortion coefficients from a target."),
+  q(1058,"Perception","calm","Easy",10,"What does epipolar geometry constrain in stereo vision?",["The search for correspondences to a 1D epipolar line in the second image reducing matching effort.","The geometry of a single camera lens distortion.","Depth from defocus via the blur circle diameter.","Camera rotation inferred from histogram changes."],0,"Constrains correspondence search to a line.","F*x = 0 means a point in image 1 corresponds to a point on the epipolar line in image 2.","Rectification aligns epipolar lines with image rows for efficient stereo matching."),
+  q(1059,"Perception","calm","Easy",10,"Why is RANSAC preferred over least-squares for feature matching in robotics?",["RANSAC fits models to random minimal subsets identifying inliers while robustly ignoring outliers.","RANSAC is faster than least-squares for all dataset sizes.","RANSAC requires no geometric model.","RANSAC produces exact solutions without iteration for small datasets."],0,"Robust to outliers via consensus set.","Least-squares is distorted by even a few outlier matches; RANSAC random sampling finds an inlier consensus set.","Used in homography estimation, essential matrix computation, and point-cloud alignment."),
+  q(1060,"Perception","calm","Easy",10,"What makes SIFT features invariant to scale and rotation?",["Scale-space extrema detection combined with a dominant orientation histogram.","Normalisation by image mean and variance.","Binary pixel pair comparisons like ORB.","3D convolutions that cancel rotation effects."],0,"Scale-space plus orientation normalisation.","SIFT builds a 128-dimensional gradient histogram normalised by the dominant orientation.","It remains a benchmark for challenging wide-baseline image matching."),
+  q(1061,"Perception","calm","Medium",15,"What distinguishes intrinsic from extrinsic camera parameters?",["Intrinsics describe internal optics (focal length, principal point, distortion); extrinsics describe the camera pose in the world.","Intrinsics are measured per scene; extrinsics are fixed at manufacturing.","Extrinsics encode lens distortion; intrinsics encode the camera-to-robot transform.","Both are identical and interchangeable in the projection model."],0,"Optics K vs pose [R|t].","K encodes how 3D rays map to pixels; [R|t] encodes where the camera sits in the world.","Multi-camera calibration estimates both for accurate 3D reconstruction."),
+  q(1062,"Perception","calm","Medium",15,"How does an occupancy grid represent environmental uncertainty differently from a point cloud?",["Each cell stores a probability of occupancy updated via a Bayes filter; a point cloud stores measured geometry without uncertainty.","Occupancy grids are always denser than point clouds in memory.","Point clouds represent uncertainty as covariance ellipsoids; occupancy grids do not model uncertainty.","Occupancy grids only work in 2D; point clouds only in 3D."],0,"Probabilistic cells vs deterministic geometry.","Each occupancy cell applies a binary Bayes filter; point clouds record geometry without explicit occupancy probability.","2D occupancy grids are standard for mobile robot navigation."),
+  q(1063,"Perception","calm","Medium",15,"What role does the attention mechanism play in vision transformers for robot perception?",["Self-attention computes pairwise relationships between all image patches enabling long-range context unlike local convolutional receptive fields.","Attention selects which camera to use among multiple sensors.","It applies edge detection before feature extraction to reduce cost.","Attention normalises pixel intensities across the image for lighting invariance."],0,"Global context via pairwise patch relationships.","ViT tokenises image patches and applies multi-head self-attention to model global relationships.","Robots use ViT-based backbones for robust semantic understanding."),
+  q(1064,"Perception","calm","Hard",20,"Why does monocular scale ambiguity make metric depth recovery impossible from geometry alone?",["A scaled version of the scene produces an identical image sequence; only non-visual information breaks the ambiguity.","Scale ambiguity only affects rotating cameras not translating ones.","Focal length encodes absolute scale after calibration.","Scale can always be recovered from two consecutive frames via homography."],0,"Scaled scene produces identical images (projective ambiguity).","Perspective projection is scale-invariant; without additional constraints the absolute depth is unobservable.","Known object sizes, ground planes, or IMU pre-integration recover metric scale."),
+  q(1065,"Perception","calm","Hard",20,"What is the aperture problem in optical flow and why does it limit local estimation?",["Only the flow component perpendicular to an edge is measurable locally; the parallel component is unobservable without wider context.","The aperture problem states that wide-aperture cameras produce motion blur.","Local flow is limited by sensor noise rather than geometry.","The aperture problem only affects depth-direction flow."],0,"Only normal flow is locally observable.","Inside a small aperture, an oriented edge moving at many velocities produces the same local gradient.","Lucas-Kanade assumes local smoothness to resolve the ambiguity."),
+  q(1066,"Perception","calm","Hard",20,"Why do voxel-based 3D detectors trade spatial resolution for computational efficiency?",["Quantising space into voxels converts sparse point operations into regular 3D convolutions losing sub-voxel detail.","Voxels increase resolution by averaging points within each cell.","Voxel methods are used only for 2D projections of 3D clouds.","Voxelisation converts the problem to a 1D sequence for transformer processing."],0,"Sparse to regular 3D grid enables convolutions.","PointNet processes raw points but is slow at scale; voxelisation enables efficient sparse 3D CNNs at the cost of resolution.","VoxelNet and CenterPoint combine voxel features with anchor-free detection heads."),
+  q(1067,"Perception","calm","Hard",20,"How does domain randomisation address the sim-to-real visual gap?",["It trains on many random rendering parameters to span the real distribution making the model invariant to rendering details.","Sim-to-real fails because simulators cannot model gravity correctly.","Domain randomisation reduces dataset size by removing redundant images.","The main challenge is that simulation is slower than real-time inference."],0,"Randomising rendering parameters spans the real distribution.","Randomising textures, lighting, object poses, and camera parameters teaches invariance to rendering details.","OpenAI Dexterous Hand used extreme domain randomisation for policy transfer."),
+  q(1068,"Perception","calm","Hard",20,"Why is instance segmentation architecturally harder than semantic segmentation?",["It must distinguish separate objects of the same class; mask prediction heads per region proposal address this.","Semantic segmentation requires 3D understanding making it harder.","Instance segmentation uses bounding boxes as proxies making it easier.","The difficulty is identical; only the loss function differs."],0,"Same-class separation requires per-instance masks.","Semantic segmentation assigns one label per pixel; instance segmentation additionally separates car 1 from car 2 requiring region-level processing.","Mask R-CNN adds a parallel mask branch to the Faster R-CNN detection head."),
 
-  // EASY — Linear Algebra
-  q(11, "Linear Algebra", "easy", "Easy", 10, "What does a matrix represent in robotics most commonly?", [
-    "A linear transformation or system relationship.",
-    "A nonlinear reward function only.",
-    "A battery chemistry state only.",
-    "A sensor calibration image only.",
-  ], 0, "Think transformations and models.", "Matrices are used for rotations, transformations, Jacobians and state-space models.", "A rotation matrix maps vectors between frames."),
-  q(12, "Linear Algebra", "easy", "Easy", 10, "What does an eigenvector represent?", [
-    "A direction preserved by a linear transformation up to scaling.",
-    "A direction rotated by exactly ninety degrees by any matrix.",
-    "A direction that always becomes orthogonal after transformation.",
-    "A direction that must map to the zero vector.",
-  ], 0, "Invariant direction.", "Eigenvectors remain on the same line after transformation, scaled by the eigenvalue.", "They appear in stability analysis and principal-component reasoning."),
-  q(13, "Linear Algebra", "easy", "Easy", 10, "What is the determinant often used to indicate?", [
-    "Whether a square matrix is singular and how it scales volume.",
-    "Whether a square matrix is always symmetric and positive definite.",
-    "Whether a square matrix is guaranteed orthonormal.",
-    "Whether a square matrix stores only eigenvectors.",
-  ], 0, "Zero determinant is important.", "A zero determinant indicates singularity, and the determinant magnitude indicates oriented volume scaling.", "A singular transformation cannot be inverted."),
-  q(14, "Linear Algebra", "easy", "Easy", 10, "Why is matrix inversion important in robotics?", [
-    "It helps recover unknown variables in linear relationships when the matrix is invertible.",
-    "It guarantees stable control even when the model is wrong.",
-    "It removes all uncertainty from state estimation.",
-    "It converts nonlinear systems into neural networks.",
-  ], 0, "Undoing a transformation.", "An inverse matrix allows one to solve linear systems or reverse linear transforms when the inverse exists.", "Coordinate conversion sometimes requires matrix inversion."),
-  q(15, "Linear Algebra", "easy", "Easy", 10, "What is a transpose of a matrix?", [
-    "A matrix obtained by swapping rows and columns.",
-    "A matrix obtained by negating all diagonal entries.",
-    "A matrix obtained by inverting only the first column.",
-    "A matrix obtained by sorting entries by magnitude.",
-  ], 0, "Rows become columns.", "The transpose changes orientation of rows and columns and appears in dot products, Jacobians and covariance operations.", "J^T is used in force-to-torque mappings."),
-  q(16, "Linear Algebra", "easy", "Easy", 10, "Why are orthonormal matrices important for rotations?", [
-    "They preserve lengths and angles during transformation.",
-    "They preserve only scaling but not angle relationships.",
-    "They preserve angle relationships but not vector lengths.",
-    "They preserve neither lengths nor angles by design.",
-  ], 0, "Rigid-body rotations should not distort geometry.", "Rotation matrices are orthonormal, so they preserve Euclidean structure.", "A robot frame rotation should not stretch vectors."),
-  q(17, "Linear Algebra", "easy", "Easy", 10, "What is rank of a matrix?", [
-    "The number of linearly independent rows or columns.",
-    "The number of eigenvalues larger than one.",
-    "The number of zero entries in the matrix.",
-    "The number of gradients needed for inversion.",
-  ], 0, "Independence matters.", "Rank tells us how many independent directions are represented by a matrix.", "A Jacobian losing rank indicates singularity."),
-  q(18, "Linear Algebra", "easy", "Easy", 10, "What is a vector norm used for?", [
-    "Measuring magnitude or distance of a vector quantity.",
-    "Measuring only the direction of a vector quantity.",
-    "Measuring only the sign pattern of vector entries.",
-    "Measuring only whether a vector is orthogonal.",
-  ], 0, "Think magnitude.", "Norms quantify vector size and are used in optimization, control and estimation.", "Path error is often measured with an L2 norm."),
-  q(19, "Linear Algebra", "easy", "Easy", 10, "What does a homogeneous transformation matrix combine?", [
-    "Rotation and translation in a single rigid-body representation.",
-    "Velocity and acceleration in a single force representation.",
-    "Torque and current in a single sensor representation.",
-    "Probability and covariance in a single dynamics representation.",
-  ], 0, "Pose = rotation + translation.", "Homogeneous transforms let us compose rigid motions conveniently using matrix multiplication.", "Robot-link transforms are chained this way."),
-  q(20, "Linear Algebra", "easy", "Easy", 10, "Why is singular value decomposition useful?", [
-    "It reveals geometric structure, rank and conditioning of a matrix.",
-    "It guarantees every nonlinear system becomes convex.",
-    "It eliminates the need for numerical optimization.",
-    "It converts probability distributions into trajectories.",
-  ], 0, "Think rank, conditioning, pseudoinverse.", "SVD is a powerful factorization used for numerical analysis, pseudoinverses and low-rank approximations.", "Robotics inverse-kinematics solvers often use SVD-based reasoning near singularities."),
+  // ── CALM: Machine Learning ────────────────────────────────────────────────
+  q(1069,"Machine Learning","calm","Easy",10,"What does the bias-variance tradeoff describe in model selection?",["High bias means underfit (too simple); high variance means overfit (too complex); the tradeoff minimises total test error.","Bias measures training speed; variance measures prediction accuracy.","Adding data always increases both bias and variance.","It describes the tradeoff between interpretability and computational cost."],0,"Underfitting vs overfitting.","Expected test error equals bias squared plus variance plus irreducible noise; model complexity shifts the balance.","Cross-validation finds the complexity that minimises total test error."),
+  q(1070,"Machine Learning","calm","Easy",10,"Why does batch normalisation improve training of deep networks?",["It normalises layer inputs to zero mean and unit variance reducing internal covariate shift and allowing higher learning rates.","It randomly drops neurons to prevent co-adaptation during training.","It averages gradients over mini-batches to reduce noise.","It constrains weights to a unit sphere preventing gradient explosion."],0,"Reduces internal covariate shift.","Normalising activations smooths the loss landscape making optimisation more stable.","BatchNorm also acts as a regulariser sometimes replacing dropout."),
+  q(1071,"Machine Learning","calm","Easy",10,"How do LSTM gating mechanisms address the vanishing gradient problem?",["LSTM gates allow gradients to flow across many timesteps via additive cell-state updates avoiding exponential decay.","LSTM eliminates recurrence replacing it with feedforward connections.","LSTM uses larger hidden states which inherently prevent gradient decay.","LSTM applies layer normalisation at each step to rescale gradients."],0,"Additive cell-state updates preserve gradient flow.","In vanilla RNNs gradients multiply the recurrent weight matrix at each step; LSTM cell state has additive updates that prevent exponential decay.","Transformers have largely replaced LSTMs but LSTMs appear in embedded robotics controllers."),
+  q(1072,"Machine Learning","calm","Easy",10,"What is the role of the kernel function in a support vector machine?",["It implicitly maps inputs to a high-dimensional feature space enabling linear separation of nonlinearly separable data.","It filters training examples below a margin threshold.","It defines the loss function penalising misclassified points.","It sets the learning rate schedule during gradient descent."],0,"Implicit feature mapping via dot products.","K(x,x') = phi(x)^T phi(x') computes the high-dimensional dot product without forming phi explicitly.","RBF kernels enable infinite-dimensional feature spaces for complex decision boundaries."),
+  q(1073,"Machine Learning","calm","Easy",10,"What does the softmax function accomplish in a neural classifier?",["It converts raw logit scores into a probability distribution summing to one.","It normalises input features to zero mean before the forward pass.","It applies a hard threshold mapping each logit to 0 or 1.","It computes the gradient of the cross-entropy loss."],0,"Logits to probability simplex.","softmax(z_i) = exp(z_i) / sum(exp(z_j)); differentiable and produces valid probabilities for categorical prediction.","Used with cross-entropy loss for multi-class classification."),
+  q(1074,"Machine Learning","calm","Medium",15,"How do L1 and L2 regularisation differ in their effect on model weights?",["L1 induces sparsity by driving some weights to exactly zero; L2 shrinks all weights toward zero without enforcing sparsity.","L1 penalises squared weights; L2 penalises absolute weights.","Both produce identical solutions for any convex loss function.","L2 causes weight explosion; L1 prevents it."],0,"L1 induces sparsity; L2 shrinks all weights.","The L1 penalty has a corner at zero where the sub-gradient includes zero creating exact zeros; L2 has a smooth minimum above zero.","Feature selection uses L1; weight-decay regularisation typically uses L2."),
+  q(1075,"Machine Learning","calm","Medium",15,"Why does dropout act as implicit ensemble learning during training?",["Each forward pass randomly masks units training a different sub-network; at test time the full network approximates an average over all sub-networks.","Dropout permanently removes the least-useful neurons.","Dropout randomly shuffles input features to prevent co-adaptation.","Dropout samples weights from a Gaussian prior at each step."],0,"Random sub-networks form an ensemble average.","With p drop probability there are 2^n possible sub-networks; dropout weight scaling at test time approximates their geometric mean.","Dropout is most effective for large fully connected layers."),
+  q(1076,"Machine Learning","calm","Medium",15,"How does the attention mechanism in transformers differ from convolution in terms of inductive bias?",["Attention has no spatial locality bias and computes all pairwise dependencies; convolution enforces local translation equivariance.","Attention is a special case of convolution with a learnable kernel size.","Convolution computes global context; attention operates only locally.","Both have identical inductive biases but attention is slower to train."],0,"Global pairwise vs local equivariant.","CNNs assume local features suffice and are translation-equivariant; transformers make no such assumption learning which tokens to attend to.","Transformers need more data but generalise better across domains."),
+  q(1077,"Machine Learning","calm","Hard",20,"Why does knowledge distillation allow a smaller student network to approach teacher performance?",["The student learns from soft probability distributions (dark knowledge) that encode inter-class similarities invisible in hard labels.","The student copies teacher weights directly reducing parameter count.","Distillation works because the student uses a higher learning rate.","The teacher provides additional labelled data the student did not train on."],0,"Soft targets contain inter-class similarity information.","Hinton dark knowledge: the teacher softmax at temperature T > 1 reveals class relationships not visible in hard labels.","Mobile robot perception systems use distillation to deploy large models on edge hardware."),
+  q(1078,"Machine Learning","calm","Hard",20,"What does the Neural Tangent Kernel (NTK) reveal about infinitely wide neural networks?",["In the infinite-width limit gradient descent is equivalent to kernel regression with a fixed kernel the NTK.","Infinitely wide networks always overfit training data.","NTK shows weight initialisation determines the final network uniquely.","The NTK proves deeper networks are always better than wider ones."],0,"Infinite width leads to linear kernel regression.","As width approaches infinity weights barely move during training and the network behaves as a linear model in the NTK feature space.","NTK theory illuminates why overparameterised networks generalise despite zero training error."),
+  q(1079,"Machine Learning","calm","Hard",20,"What is the lottery ticket hypothesis and what does it imply for network pruning?",["Dense networks contain sparse sub-networks (winning tickets) that when trained from their original initialisation match the full network accuracy.","Any randomly initialised network will win a given task with enough training.","Pruning should always be done before training to find the optimal sparse network.","Weight magnitude alone determines which parameters are important."],0,"Sparse sub-networks with correct initialisation match full networks.","Frankle and Carlin showed that winning tickets identified by magnitude pruning plus rewinding reach full accuracy at a fraction of the parameters.","This motivates efficient sparse training for resource-constrained robots."),
+  q(1080,"Machine Learning","calm","Hard",20,"Why does contrastive self-supervised learning require negative pairs or architectural asymmetry to prevent representation collapse?",["Without negatives the trivial constant-output solution minimises contrastive loss; negatives or asymmetric architectures break this symmetry.","A large learning rate forces the network to explore diverse representations.","Batch normalisation alone prevents collapse by normalising embeddings.","Collapse is prevented by using L2 loss instead of cross-entropy."],0,"Negative pairs or asymmetry prevent trivial constant output.","Without negatives minimising contrastive loss leads to constant output; negatives push apart different-sample representations.","BYOL avoids negatives using a slow-moving teacher (momentum encoder) and a predictor head."),
 
-  // EASY — Probability
-  q(21, "Probability", "easy", "Easy", 10, "What does a probability distribution represent in robotics?", [
-    "Uncertainty over possible values of a variable or state.",
-    "An exact deterministic trajectory of the system.",
-    "A fixed control law with zero uncertainty.",
-    "A rigid coordinate transform with no ambiguity.",
-  ], 0, "Think uncertainty.", "Probability distributions model uncertain states, measurements or outcomes in robotics.", "A robot pose estimate is often represented probabilistically."),
-  q(22, "Probability", "easy", "Easy", 10, "What does Bayesian filtering do?", [
-    "Updates a belief over state using prediction and observation steps.",
-    "Updates a control law using only optimization steps.",
-    "Updates a map using only deterministic geometry steps.",
-    "Updates a trajectory using only supervised labels.",
-  ], 0, "Prediction plus correction.", "Bayesian filtering recursively maintains a probability distribution over state using a motion model and sensor data.", "Kalman filtering is one special case."),
-  q(23, "Probability", "easy", "Easy", 10, "What is conditional probability?", [
-    "The probability of an event given that another event is known.",
-    "The probability of an event independent of all observations.",
-    "The probability of an event with zero variance always.",
-    "The probability of an event after removing all priors.",
-  ], 0, "'Given' is the key word.", "Conditional probability quantifies uncertainty after some information is observed.", "SLAM often uses probabilities conditioned on sensor data."),
-  q(24, "Probability", "easy", "Easy", 10, "Why is Gaussian noise commonly assumed in estimation?", [
-    "It leads to mathematically convenient models and often matches many small disturbances.",
-    "It exactly describes every robotic sensor in all situations.",
-    "It removes the need for covariance matrices.",
-    "It guarantees zero measurement bias.",
-  ], 0, "Convenience and approximation.", "Gaussian assumptions simplify inference and often approximate aggregate noise well under many conditions.", "Kalman filtering relies heavily on Gaussian assumptions."),
-  q(25, "Probability", "easy", "Easy", 10, "What does covariance describe?", [
-    "The uncertainty spread and correlations between variables.",
-    "The deterministic mapping between states and controls.",
-    "The exact value of the mean state estimate.",
-    "The rotation of a vector between coordinate frames.",
-  ], 0, "Variance plus relationships.", "Covariance matrices capture uncertainty magnitude and cross-variable correlation.", "In localization, x and y errors can be correlated."),
-  q(26, "Probability", "easy", "Easy", 10, "What is a prior in Bayesian estimation?", [
-    "Belief about a variable before incorporating the latest observation.",
-    "Belief about a variable after ignoring all previous observations.",
-    "Belief about a variable after optimization has converged exactly.",
-    "Belief about a variable after removing all model assumptions.",
-  ], 0, "Before the new measurement.", "A prior summarizes knowledge before the current evidence is processed.", "Motion-model propagation often produces the prior for the next step."),
-  q(27, "Probability", "easy", "Easy", 10, "What is a posterior in Bayesian estimation?", [
-    "Belief about a variable after updating with observed evidence.",
-    "Belief about a variable before seeing any evidence.",
-    "Belief about a variable with no uncertainty at all.",
-    "Belief about a variable after removing the likelihood term.",
-  ], 0, "After the measurement update.", "The posterior combines prior belief and observation likelihood.", "Localization updates a posterior pose distribution after each sensor reading."),
-  q(28, "Probability", "easy", "Easy", 10, "Why is probabilistic reasoning important in SLAM?", [
-    "Because both robot motion and sensing are uncertain.",
-    "Because robot motion is deterministic but sensing is always exact.",
-    "Because mapping is exact while localization is impossible.",
-    "Because probability removes the need for sensor models.",
-  ], 0, "Uncertainty is everywhere.", "SLAM must reason under uncertain motion, noisy observations and ambiguous data association.", "A robot never knows its pose or map perfectly."),
-  q(29, "Probability", "easy", "Easy", 10, "What is a likelihood function?", [
-    "A function measuring how probable an observation is for a hypothesized state.",
-    "A function measuring how probable a control input is for a fixed map.",
-    "A function measuring how probable a trajectory is after optimization only.",
-    "A function measuring how probable a battery voltage is after calibration only.",
-  ], 0, "Observation given state.", "Likelihood tells us how compatible the measurement is with a candidate state.", "Range sensors often use a measurement likelihood in localization."),
-  q(30, "Probability", "easy", "Easy", 10, "What is the expected value of a random variable?", [
-    "Its probability-weighted average value.",
-    "Its maximum physically possible value.",
-    "Its minimum uncertainty value.",
-    "Its most recent observed value only.",
-  ], 0, "Average with weights.", "Expectation is a weighted average based on the distribution.", "Expected cost is common in planning under uncertainty."),
+  // ── CALM: Linear Algebra ──────────────────────────────────────────────────
+  q(1081,"Linear Algebra","calm","Easy",10,"What does the rank of a matrix physically represent in a robot Jacobian?",["The number of independent task-space directions that can be actuated.","Number of non-zero eigenvalues times the matrix determinant.","Total number of elements in the matrix.","Ratio of the largest to smallest entry."],0,"Dimension of the column space.","Rank equals dim(col space); in a Jacobian rank tells how many independent Cartesian directions can be actuated.","Rank loss at singularities means some directions become uncontrollable."),
+  q(1082,"Linear Algebra","calm","Easy",10,"What does the SVD A = U*Sigma*V^T reveal about a linear map?",["Orthonormal input directions (V), scaling factors (Sigma), and orthonormal output directions (U).","It factorises A into eigenvalues regardless of whether A is square.","It converts A to a diagonal matrix only when A is symmetric.","It finds the inverse of A without Gaussian elimination."],0,"Geometry: input principal axes, scaling, output principal axes.","Columns of V are input directions; singular values are scaling magnitudes; columns of U are output directions.","SVD underlies pseudoinverse computation, PCA, and rank determination."),
+  q(1083,"Linear Algebra","calm","Easy",10,"When is the Moore-Penrose pseudoinverse A-dagger used instead of A inverse?",["When A is non-square or singular; A-dagger gives the minimum-norm least-squares solution.","Only when A is positive definite and square.","When A has more rows than columns and a unique exact solution exists.","A-dagger is used only for diagonal matrices."],0,"Non-square or singular matrices need the pseudoinverse.","A-dagger = V*Sigma-dagger*U^T; it minimises ||Ax - b|| and among those minimises ||x||.","Over-determined inverse kinematics uses A-dagger to find minimum joint-velocity solutions."),
+  q(1084,"Linear Algebra","calm","Easy",10,"What does positive definiteness of matrix M mean for a quadratic form x^T M x?",["It is strictly positive for all non-zero x defining a proper energy or metric on the space.","All entries of M are positive real numbers.","M has at least one positive eigenvalue.","M is a valid rotation matrix."],0,"Energy is always positive for non-zero x.","PD ensures x^T M x > 0 for all non-zero x guaranteeing M defines a valid inner product.","The inertia matrix of a robot is always symmetric positive definite."),
+  q(1085,"Linear Algebra","calm","Easy",10,"What does the Cayley-Hamilton theorem state and why is it useful in matrix computations?",["Every matrix satisfies its own characteristic polynomial reducing matrix powers to lower-degree polynomials.","All eigenvalues of a rotation matrix lie on the unit circle.","Every invertible matrix has a positive-definite square root.","The trace of a matrix equals the sum of its singular values."],0,"A satisfies p_A(A) = 0.","For a 3x3 matrix, A^3 can be expressed as a linear combination of I, A, A^2; this truncates the matrix exponential series.","Used in Rodrigues rotation formula to compute SO(3) exponentials in closed form."),
+  q(1086,"Linear Algebra","calm","Medium",15,"How does a high condition number affect numerical solution accuracy in robotics?",["Small input perturbations cause large output changes making solutions numerically unreliable.","Condition number measures closeness to orthogonality.","A condition number of 1 means the matrix is singular.","High condition number guarantees faster convergence of iterative solvers."],0,"cond(A) amplifies numerical errors.","cond(A) = sigma_max / sigma_min; the relative error in the solution is bounded by cond(A) times the relative data error.","Ill-conditioned Jacobians near singularities cause unreliable velocity commands."),
+  q(1087,"Linear Algebra","calm","Medium",15,"Why is solving the normal equations A^T A x = A^T b numerically inferior to QR decomposition?",["Squaring A squares its condition number amplifying errors; QR applied to A directly is more stable.","The normal equations are only unstable when b has zero entries.","A^T A is always singular making the normal equations unsolvable.","Instability arises only when A has more columns than rows."],0,"cond(A^T A) = cond(A)^2 doubles numerical problems.","Computing A^T A loses half the significant bits in floating-point; QR decomposition applied to A directly avoids this.","Least-squares calibration in robotics prefers QR or SVD solvers."),
+  q(1088,"Linear Algebra","calm","Medium",15,"What is the Schur complement and why does it appear in EKF covariance updates?",["It allows block matrix inversion without inverting the full matrix enabling efficient covariance updates.","It is the sum of diagonal blocks of a matrix.","It is used only for symmetric indefinite matrices.","Schur complements are equivalent to eigenvalue decomposition for block-diagonal matrices."],0,"Block elimination avoids full matrix inversion.","In the Kalman update the innovation covariance S = HPH^T + R and P update use the Schur complement to avoid inverting the full state covariance.","Sparse EKF variants exploit Schur complements for scalable SLAM updates."),
+  q(1089,"Linear Algebra","calm","Hard",20,"How does PCA use eigenvectors of the covariance matrix for dimensionality reduction?",["It projects data onto eigenvectors with the largest eigenvalues capturing maximum variance in fewer dimensions.","PCA finds eigenvectors of the data matrix not the covariance matrix.","PCA uses the singular vectors of the data matrix different from covariance eigenvectors.","PCA projects onto the null space to remove redundant dimensions."],0,"Top eigenvectors maximise variance explained.","Cov = U*Lambda*U^T; projecting onto the top k columns of U retains the k directions of greatest variance.","Robot proprioception data is often compressed via PCA before training a neural policy."),
+  q(1090,"Linear Algebra","calm","Hard",20,"Why must optimisation on the SO(3) manifold use Riemannian methods rather than Euclidean gradient descent?",["SO(3) is a curved manifold; Euclidean updates leave the manifold by violating orthogonality so retraction steps are needed.","SO(3) is flat but numerical issues require Riemannian methods.","Euclidean gradient descent on SO(3) converges to local minima only.","SO(3) can be embedded in R^6 without loss making Euclidean methods valid."],0,"Curved manifold: Euclidean steps violate R^T R = I.","Adding a small matrix to a rotation matrix generally produces a non-rotation; retraction keeps iterates on SO(3).","Rotation averaging in SLAM uses Riemannian optimisation on SO(3)."),
+  q(1091,"Linear Algebra","calm","Hard",20,"What does the Perron-Frobenius theorem guarantee for positive matrices in multi-robot graph problems?",["A positive square matrix has a unique largest real eigenvalue with a corresponding all-positive eigenvector guaranteeing power-iteration convergence.","All eigenvalues of a rotation matrix lie on the unit circle.","The theorem applies only to diagonal positive matrices.","Every stochastic matrix is invertible."],0,"Unique dominant positive eigenvalue and eigenvector.","Perron-Frobenius underpins consensus algorithms and Markov chains used in multi-robot coordination and graph-based planning.","The dominant eigenvector of the transition matrix gives the stationary distribution."),
+  q(1092,"Linear Algebra","calm","Hard",20,"Why is LU decomposition preferred over repeated Gaussian elimination when solving Ax=b for multiple right-hand sides?",["A = LU is factorised once in O(n^3); each subsequent solve is O(n^2) via substitution efficient when b changes but A does not.","LU is more numerically stable than Gaussian elimination for all matrices.","LU requires no pivoting and always succeeds.","LU is preferred only for symmetric positive definite matrices."],0,"Factorise once solve many times cheaply.","Repeated control loops that solve the same inertia matrix system as q changes slowly benefit from cached LU factors.","Robot dynamics libraries re-use factorised inertia matrices across control cycles."),
+  q(1093,"Linear Algebra","calm","Hard",20,"How does the Kronecker product vectorise matrix equations in robot learning and control?",["vec(AXB) = (B^T tensor A) vec(X) converts matrix equations into linear systems solvable by standard methods.","The Kronecker product computes the element-wise product of two matrices.","It is used to combine two rotation matrices into a single 6-DOF transform.","Kronecker products only apply when both matrices are square and of the same size."],0,"Vectorisation linearises matrix equations.","Many system identification and structured regression problems in robotics are linear in parameter matrices; Kronecker products make the linear structure explicit.","Used in tensor regression, covariance estimation, and Gaussian process hyperparameter learning."),
 
-  // EASY — Manipulators
-  q(31, "Manipulators", "easy", "Easy", 10, "What does forward kinematics compute?", [
-    "End-effector pose from joint coordinates.",
-    "Joint torques from end-effector pose.",
-    "End-effector covariance from link mass values.",
-    "Sensor noise from actuator coordinates.",
-  ], 0, "Joints in, pose out.", "Forward kinematics maps joint variables to end-effector position and orientation.", "Robot arms use it to determine where the gripper currently is."),
-  q(32, "Manipulators", "easy", "Easy", 10, "What does the Jacobian matrix relate?", [
-    "Joint velocities to end-effector velocities.",
-    "Joint torques to battery voltage.",
-    "Joint inertia to end-effector color.",
-    "Joint positions to camera intrinsics.",
-  ], 0, "Differential motion map.", "The Jacobian relates q̇ and ẋ in manipulator kinematics.", "It is also used in force and control formulations."),
-  q(33, "Manipulators", "easy", "Easy", 10, "What is inverse kinematics?", [
-    "Computing joint coordinates that achieve a desired end-effector pose.",
-    "Computing end-effector torques that achieve a desired joint pose.",
-    "Computing joint velocities that achieve a desired battery state.",
-    "Computing map coordinates that achieve a desired sensor pose.",
-  ], 0, "Pose desired, joints unknown.", "Inverse kinematics solves for joint values that realize a requested Cartesian pose.", "Multiple or no solutions can exist depending on geometry."),
-  q(34, "Manipulators", "easy", "Easy", 10, "Why can inverse kinematics have multiple solutions?", [
-    "Different joint configurations can realize the same end-effector pose.",
-    "Different sensors can realize the same Jacobian matrix.",
-    "Different battery states can realize the same workspace.",
-    "Different control gains can realize the same DH table.",
-  ], 0, "Elbow-up and elbow-down.", "Many manipulators can reach a pose through more than one joint arrangement.", "A two-link arm is the classic example."),
-  q(35, "Manipulators", "easy", "Easy", 10, "What is a manipulator workspace?", [
-    "The set of positions or poses the end effector can reach.",
-    "The set of torques the controller can stabilize exactly.",
-    "The set of covariance matrices the estimator can invert.",
-    "The set of images the camera can classify correctly.",
-  ], 0, "Reachability region.", "Workspace describes the reachable region of the end effector, sometimes including orientations.", "Joint limits affect the actual workspace."),
-  q(36, "Manipulators", "easy", "Easy", 10, "What is a singularity in manipulator kinematics?", [
-    "A configuration where the Jacobian loses rank and dexterity drops.",
-    "A configuration where the inertia matrix becomes diagonal and control improves.",
-    "A configuration where battery voltage becomes zero and motion stops.",
-    "A configuration where all sensor noise becomes isotropic instantly.",
-  ], 0, "Rank loss.", "At singularities, certain Cartesian motions become hard or impossible to generate cleanly.", "Near singularity, small Cartesian moves may require very large joint rates."),
-  q(37, "Manipulators", "easy", "Easy", 10, "Why are homogeneous transformation matrices used?", [
-    "They combine rotation and translation in one rigid-body transform.",
-    "They combine torque and current in one actuator model.",
-    "They combine probability and covariance in one estimator update.",
-    "They combine reward and value in one policy model.",
-  ], 0, "Pose composition.", "Homogeneous matrices let us chain rigid transforms with matrix multiplication.", "Link-by-link forward kinematics often uses them."),
-  q(38, "Manipulators", "easy", "Easy", 10, "What do DH parameters help describe?", [
-    "The geometric relationship between successive manipulator links.",
-    "The probabilistic relationship between sensor noise models.",
-    "The dynamic relationship between battery cells and motors.",
-    "The visual relationship between pixels and semantic classes.",
-  ], 0, "Serial-arm geometry.", "Denavit–Hartenberg parameters are a systematic way to describe serial-chain geometry.", "They are used to build transformation chains."),
-  q(39, "Manipulators", "easy", "Easy", 10, "What does a revolute joint allow?", [
-    "Relative rotational motion about a joint axis.",
-    "Relative translational motion along every joint axis.",
-    "Relative probabilistic motion under every uncertainty axis.",
-    "Relative visual motion between camera pixels.",
-  ], 0, "Rotation joint.", "A revolute joint rotates around an axis, unlike a prismatic joint which translates.", "Industrial arms are dominated by revolute joints."),
-  q(40, "Manipulators", "easy", "Easy", 10, "Why is the Jacobian transpose useful in manipulation?", [
-    "It maps end-effector forces or wrenches into joint torques.",
-    "It maps joint torques into battery temperatures.",
-    "It maps camera images into end-effector velocities.",
-    "It maps covariance matrices into reachable workspace boundaries.",
-  ], 0, "Think force mapping.", "The transpose of the Jacobian appears in virtual work and force-torque relationships.", "Contact force at the gripper can be converted into joint torque demand."),
+  // ── CALM: Probability ─────────────────────────────────────────────────────
+  q(1094,"Probability","calm","Easy",10,"How is Bayes theorem applied in robot state estimation?",["P(state|obs) = P(obs|state)*P(state)/P(obs) updates the belief over the hidden state given a new observation.","Bayes theorem computes the joint probability of two independent events.","It states prior and posterior are always Gaussian.","It applies only when the state space is discrete."],0,"Posterior proportional to likelihood times prior.","The Bayesian update is the foundation of all recursive estimators: Kalman, particle, and grid filters all implement it.","P(x|z) is the posterior pose given sensor reading z."),
+  q(1095,"Probability","calm","Easy",10,"What does the Markov property state in robot state estimation?",["The future state is conditionally independent of the history given the current state.","All states are mutually independent.","The robot state is always Gaussian regardless of dynamics.","Measurement noise is white and Gaussian."],0,"Past is irrelevant given present state.","P(x_{t+1}|x_t,x_{t-1},...) = P(x_{t+1}|x_t); this enables recursive memoryless filters.","Most robot motion models satisfy the Markov property by augmenting the state."),
+  q(1096,"Probability","calm","Easy",10,"What does the entropy of a probability distribution measure?",["Average uncertainty or information content of the distribution.","Mean value weighted by variance.","Squared distance between the distribution and a Gaussian.","Number of bits needed to store distribution parameters."],0,"Average uncertainty.","H(X) = -sum p(x) log p(x); high entropy means high uncertainty; low entropy means concentrated distribution.","Entropy minimisation is used in active perception to select uncertainty-reducing actions."),
+  q(1097,"Probability","calm","Easy",10,"What distinguishes aleatoric from epistemic uncertainty in robot learning?",["Aleatoric: irreducible noise in the data; epistemic: reducible model uncertainty due to limited knowledge.","Aleatoric comes from the model; epistemic from measurement noise.","Both are identical and can be reduced with more data.","Epistemic uncertainty only appears in Bayesian neural networks."],0,"Data noise vs model uncertainty.","Aleatoric: inherent sensor noise; epistemic: model uncertainty that shrinks with more training data.","Safety-critical robots must quantify both for reliable decisions."),
+  q(1098,"Probability","calm","Easy",10,"What does the law of total probability compute?",["P(A) = sum P(A|B_i)*P(B_i) for a partition {B_i} marginalising over a hidden variable.","Probabilities of all events in a sample space sum to more than one.","Conditional probability of two dependent events.","The expectation of any distribution equals its mode."],0,"Marginalise over a partition.","By summing over all values of a conditioning variable total probability collapses the joint distribution.","Bayes filter prediction: p(x_t|z_{1:t-1}) = integral p(x_t|x_{t-1}) p(x_{t-1}|z_{1:t-1}) dx_{t-1}."),
+  q(1099,"Probability","calm","Medium",15,"Why is KL divergence asymmetric and what does KL(P||Q) represent?",["KL(P||Q) = E_P[log P/Q] measures expected log-ratio under P; P and Q play different roles.","KL divergence is symmetric; KL(P||Q) = KL(Q||P) always.","KL(P||Q) measures the entropy of the mixture (P+Q)/2.","KL divergence equals squared Euclidean distance between means."],0,"D_KL(P||Q) = E_P[log P/Q] penalises regions where P is high and Q is low.","Asymmetry means KL(P||Q) penalises where P is high but Q is low; KL(Q||P) penalises the opposite.","VAE training minimises KL(q(z|x)||p(z)) the forward KL from approximate to prior."),
+  q(1100,"Probability","calm","Medium",15,"What is the Cramer-Rao lower bound and why is it important for sensor fusion?",["It sets a lower bound on the variance of any unbiased estimator equal to the inverse Fisher information matrix.","It specifies the minimum sample size for a consistent estimate.","It bounds the maximum likelihood from above for Gaussian distributions.","It states that posterior variance is always larger than prior variance."],0,"Variance >= (Fisher info)^{-1}.","No unbiased estimator can achieve variance below the CRLB; the Kalman filter achieves it for linear Gaussian systems.","Comparing estimator variance to the CRLB reveals fusion algorithm efficiency."),
+  q(1101,"Probability","calm","Hard",20,"How does Gaussian process regression handle model uncertainty differently from parametric regression?",["GP regression maintains a full posterior distribution over functions providing calibrated uncertainty at every prediction point.","GP uses a fixed parameterised function and provides no uncertainty estimate.","GP requires more data than neural networks to achieve equivalent accuracy.","GP regression is identical to Bayesian linear regression with a fixed feature map."],0,"Non-parametric posterior over functions.","A GP is defined by a mean function and covariance kernel; the posterior gives calibrated confidence intervals after observing data.","Safe robot controllers use GP-based uncertainty to avoid high-uncertainty regions."),
+  q(1102,"Probability","calm","Hard",20,"Why does the curse of dimensionality cause particle filters to fail in high-dimensional state spaces?",["The number of particles needed to represent the distribution with fixed accuracy grows exponentially with state dimension.","Particle filters are less affected by high dimensions than Kalman filters.","High dimensions make particle weights uniform improving estimation.","The curse only affects grid-based filters."],0,"Exponential particle count required.","In d dimensions, covering the state space to resolution epsilon needs O((1/epsilon)^d) particles; infeasible for full 6-DOF pose estimation.","Rao-Blackwellisation and low-dimensional sufficient statistics mitigate this."),
+  q(1103,"Probability","calm","Hard",20,"What property of exponential family distributions makes Bayesian updating tractable?",["They have conjugate priors so the posterior remains in the same family after a Bayesian update enabling closed-form inference.","They have zero entropy making the posterior deterministic after one update.","All exponential family distributions have Gaussian marginals.","They satisfy the Markov property automatically."],0,"Conjugate priors lead to closed-form posteriors.","For an exponential family likelihood the conjugate prior update reduces to incrementing natural parameters: tractable and exact.","Kalman filter exploits Gaussian conjugacy; Dirichlet-categorical exploits Dirichlet conjugacy."),
+  q(1104,"Probability","calm","Hard",20,"How does the EM algorithm handle latent variables in robot learning problems?",["E-step computes expected complete-data log-likelihood under current parameters; M-step maximises it alternating until convergence.","E-step draws random samples from the prior; M-step updates the posterior.","EM directly maximises marginal likelihood without latent variables.","EM is only applicable to models with Gaussian latent variables."],0,"Alternating expectation and maximisation on complete-data likelihood.","EM monotonically increases the marginal likelihood by introducing a lower bound via Jensen inequality.","Used for Gaussian mixture models, HMMs, and motion primitive learning."),
+  q(1105,"Probability","calm","Hard",20,"What does calibration mean for a probabilistic classifier and how is Expected Calibration Error measured?",["A calibrated classifier predicted probability p matches the empirical fraction of positive outcomes; ECE measures the gap between confidence and accuracy across bins.","Calibration means the classifier achieves maximum accuracy on the test set.","A calibrated model has equal precision and recall across all classes.","Calibration measures correlation between predicted and true labels."],0,"Predicted probability equals empirical frequency.","ECE = sum |acc(B_m) - conf(B_m)| * |B_m|/n measures calibration quality across confidence bins.","Robot safety systems rely on calibrated uncertainty to trigger fallback behaviours."),
 
-  // EASY — Computation
-  q(41, "Computation", "easy", "Easy", 10, "Why are GPUs useful for robotics AI workloads?", [
-    "They are efficient at massively parallel numerical computation.",
-    "They remove the need for training data in robotics.",
-    "They replace all sensors in AI-based robot stacks.",
-    "They guarantee real-time performance for every task.",
-  ], 0, "Parallelism.", "GPUs accelerate large matrix and tensor operations common in perception and learning.", "Segmentation and detection models often run on GPUs."),
-  q(42, "Computation", "easy", "Easy", 10, "What is the main job of a CPU in robotics software?", [
-    "General-purpose control, logic, coordination and sequential computation.",
-    "Only massively parallel neural-network matrix multiplication.",
-    "Only high-bandwidth graphics rasterization.",
-    "Only analog sensor calibration in hardware.",
-  ], 0, "General-purpose orchestration.", "CPUs handle logic-heavy workloads such as planning, middleware, state machines and control coordination.", "Robot operating systems depend heavily on CPU scheduling."),
-  q(43, "Computation", "easy", "Easy", 10, "What is the role of an accelerator such as an NPU or TPU?", [
-    "Speeding up specialized operations such as neural inference efficiently.",
-    "Replacing all robot software and control architecture.",
-    "Eliminating the need for sensor fusion entirely.",
-    "Performing only rigid-body kinematics with no learning tasks.",
-  ], 0, "Specialized hardware.", "Accelerators are designed for specific workloads and can improve performance-per-watt on those tasks.", "Edge robots often use NPUs for vision inference."),
-  q(44, "Computation", "easy", "Easy", 10, "Why is memory bandwidth important in robotics perception?", [
-    "Large sensor tensors and images must be moved efficiently through the compute pipeline.",
-    "It directly determines the mechanical strength of the robot frame.",
-    "It guarantees a model will generalize to new environments.",
-    "It eliminates the need for numerical optimization.",
-  ], 0, "Data movement matters.", "Perception systems can become bottlenecked by data transfer rather than arithmetic alone.", "Point-cloud and image pipelines are often memory intensive."),
-  q(45, "Computation", "easy", "Easy", 10, "What does real-time computing mean in robotics?", [
-    "Computation that consistently meets required timing deadlines.",
-    "Computation that simply runs faster than human reaction speed.",
-    "Computation that always uses GPUs for execution.",
-    "Computation that eliminates all operating-system delays.",
-  ], 0, "Deadline-focused.", "A real-time system is judged by whether it meets timing constraints, not only by average speed.", "Motor control loops often require predictable update timing."),
-  q(46, "Computation", "easy", "Easy", 10, "Why is parallelism valuable in robotics?", [
-    "Multiple computations can be executed simultaneously for higher throughput.",
-    "Multiple computations become sequentially equivalent by definition.",
-    "Multiple computations eliminate the need for synchronization.",
-    "Multiple computations always reduce latency to zero.",
-  ], 0, "More work at once.", "Parallelism helps when perception, planning and learning workloads can be distributed effectively.", "A robot may run detection, tracking and mapping concurrently."),
-  q(47, "Computation", "easy", "Easy", 10, "What is latency in a compute pipeline?", [
-    "The time between input arrival and output availability.",
-    "The number of processor cores in the system.",
-    "The total memory installed in the system.",
-    "The number of sensors attached to the robot.",
-  ], 0, "Delay through the system.", "Latency matters for control because stale outputs can hurt decision quality.", "Fast throughput does not automatically imply low latency."),
-  q(48, "Computation", "easy", "Easy", 10, "Why are embedded systems important in robotics?", [
-    "They provide onboard computation close to sensors and actuators.",
-    "They remove the need for any external communication.",
-    "They guarantee global optimality in motion planning.",
-    "They replace all high-level decision making with hardware.",
-  ], 0, "Onboard intelligence.", "Embedded controllers are essential for local sensing, actuation and timing-critical loops.", "Flight controllers are a common embedded robotics example."),
-  q(49, "Computation", "easy", "Easy", 10, "What is heterogeneous computing?", [
-    "Using different processor types for the tasks they handle best.",
-    "Using a single CPU for every task regardless of workload.",
-    "Using the same GPU kernel for all sensing and control tasks.",
-    "Using only analog electronics for learning inference.",
-  ], 0, "CPU + GPU + accelerator style division.", "Robotics systems often combine CPUs, GPUs, MCUs and accelerators for efficiency and capability.", "A drone may use an MCU for control and a GPU module for vision."),
-  q(50, "Computation", "easy", "Easy", 10, "Why are caches helpful in processors?", [
-    "They reduce average access time for frequently used data.",
-    "They increase network latency for control messages.",
-    "They replace RAM with permanent storage automatically.",
-    "They transform nonlinear control laws into linear ones.",
-  ], 0, "Faster nearby memory.", "Caches store recently used data so the processor spends less time waiting on slower memory.", "Repeated matrix and state access can benefit significantly."),
+  // ── CALM: Manipulators ────────────────────────────────────────────────────
+  q(1106,"Manipulators","calm","Easy",10,"What is the distinction between position control and force control in robotic manipulation?",["Position control regulates end-effector geometry; force control regulates contact forces; both are needed for constrained manipulation.","Force control is a special case of position control with inverted gains.","Position control is used for free-space motion; force control only when stationary.","Both are implemented identically with different sensor inputs."],0,"Geometry vs interaction forces.","In free space position control suffices; on contact regulating force prevents damage and ensures stable interaction.","Hybrid position/force control specifies different modes for different task-space directions."),
+  q(1107,"Manipulators","calm","Easy",10,"What does the dexterity ellipsoid of a manipulator represent?",["Set of end-effector velocities achievable for unit joint-velocity norm reflecting directional bias and nearness to singularity.","Volume of the reachable workspace bounded by joint limits.","Set of end-effector forces for unit joint torque.","Region around the end effector within which the robot can apply forces."],0,"Achievable Cartesian velocities for unit joint rates.","Dexterity ellipsoid = {Jv : ||v|| <= 1}; elongated ellipsoids indicate directional bias.","Manipulability measure w = sqrt(det(JJ^T)) summarises it as a scalar."),
+  q(1108,"Manipulators","calm","Easy",10,"What is the primary benefit of resolved-rate motion control?",["Directly specifies end-effector velocity in Cartesian space and computes joint rates via J-dagger in real time.","Eliminates the need for forward kinematics.","Guarantees minimum joint torque for all motions.","Solves the full IK problem analytically."],0,"Direct Cartesian velocity to joint rates via J-dagger.","x_dot_desired leads to q_dot = J-dagger * x_dot_desired; Cartesian velocity commands are intuitive for teleoperation and task-space control.","Real-time resolved-rate control is standard in industrial robot controllers."),
+  q(1109,"Manipulators","calm","Medium",15,"How does the task-priority hierarchical framework handle conflicting objectives in a redundant manipulator?",["Higher-priority tasks are satisfied exactly; lower-priority tasks are projected into the null space of all higher-priority tasks.","All objectives are combined into a single weighted sum and optimised jointly.","Task priorities are assigned randomly at each control timestep.","Higher-priority tasks receive larger gains but may still be violated."],0,"Strict hierarchy via null-space projection.","tau = tau_1 + N_1^T*(tau_2 + N_2^T*(tau_3 + ...)); N_i is the null-space projector of all tasks above i.","Used in whole-body controllers for humanoid robots combining balance, manipulation, and gaze."),
+  q(1110,"Manipulators","calm","Medium",15,"What distinguishes force closure from force quality in grasp planning?",["Closure is binary (stable or not); quality measures the margin or robustness of force closure.","Stability means the grasp is collision-free; quality measures approach speed.","Both terms are synonymous in grasp planning literature.","Stability requires point contact; quality requires surface contact."],0,"Binary property vs continuous margin.","Force closure means no unresisted wrench; quality metrics like the largest inscribed sphere in the grasp wrench space measure robustness.","Higher quality grasps tolerate larger external perturbations before failing."),
+  q(1111,"Manipulators","calm","Hard",20,"How does the wrist singularity of a 6-DOF spherical-wrist robot manifest?",["When the middle wrist joint is at 0 or 180 degrees, the first and third wrist joints become coplanar losing a DOF and causing rate singularity.","Wrist singularity occurs when all six joint angles are simultaneously zero.","It manifests as complete loss of all rotational DOF.","Wrist singularity only affects prismatic-joint robots."],0,"Middle wrist axis alignment collapses two axes to one.","With the middle wrist at 0 degrees, joints 4 and 6 have parallel axes reducing orientation DOF from 3 to 2 and causing unbounded joint rates.","Path planners route trajectories to avoid wrist singularity configurations."),
+  q(1112,"Manipulators","calm","Hard",20,"What does the selection matrix S accomplish in hybrid position/force control?",["S decomposes the task space into constrained directions (force-controlled) and unconstrained directions (position-controlled) based on contact geometry.","S scales impedance gains for smooth contact transitions.","S selects which joints are torque-controlled vs position-controlled.","S enables or disables the integral term in contact control."],0,"Geometric task-space decomposition into force and position subspaces.","The constraint Jacobian defines constrained directions; S projects the task into these subspaces for independent position and force control.","Grinding, polishing, and insertion tasks use hybrid control with S from surface normals."),
+  q(1113,"Manipulators","calm","Hard",20,"Why does dynamic manipulability differ from kinematic manipulability?",["Dynamic manipulability accounts for inertia and joint torque limits; kinematic manipulability considers only velocity or geometric constraints.","Dynamic manipulability is kinematic manipulability scaled by joint stiffness.","Dynamic manipulability only applies to robots with more than 6 DOF.","Both measures are equivalent for robots with uniform link masses."],0,"Torque-limited acceleration ellipsoid vs velocity ellipsoid.","Dynamic manipulability ellipsoid incorporates the inertia matrix; it changes even without configuration change if velocities change.","Used to plan motions that exploit dynamic capabilities for faster execution."),
+  q(1114,"Manipulators","calm","Hard",20,"How do compliant motion strategies exploit environmental constraints in robotic assembly?",["By controlling stiffness and damping so contact forces act as geometric guides rather than disturbances.","By maximising stiffness to resist all contact forces during insertion.","Compliant strategies reduce actuator forces to zero during contact.","Environmental constraints are avoided entirely in compliant motion."],0,"Controlled compliance uses contact as a guide.","Peg-in-hole assembly uses chamfers and stiffness control so contact forces naturally guide the peg; RCC devices do this passively.","Active impedance control generalises this to arbitrary tasks."),
+  q(1115,"Manipulators","calm","Hard",20,"Why does the Jacobian transpose method converge only when away from singularities?",["Near singularities degenerate directions amplify errors in the gradient-descent-like update making convergence unreliable.","J^T always converges regardless of configuration.","J^T avoids singularity issues because it never requires matrix inversion.","J^T converges only for position tasks not orientation tasks."],0,"Near singularities degenerate directions amplify errors.","While J^T avoids explicit inversion unlike J-dagger the gradient-descent-like update has ill-conditioned curvature near singularities.","Damped least squares (Levenberg-Marquardt) provides a singularity-robust alternative."),
 
-  // HARD — Numerical Optimization (1-5 starter, 6-10 research-inspired)
-  q(51, "Numerical Optimization", "hard", "Starter", 15, "Why are convex optimization problems attractive in robotics?", [
-    "They have no spurious local minima beyond the global optimum.",
-    "They eliminate all constraints from the optimization model.",
-    "They remove gradient information from the objective.",
-    "They make all nonlinear systems exactly linear.",
-  ], 0, "Global optimum guarantee.", "Convex structure gives strong solution guarantees and predictable solver behavior.", "Quadratic programs are common in robotics control."),
-  q(52, "Numerical Optimization", "hard", "Starter", 15, "What is a quadratic program?", [
-    "An optimization problem with a quadratic objective and linear constraints.",
-    "An optimization problem with a linear objective and nonlinear constraints only.",
-    "An optimization problem with a quadratic objective and no variables.",
-    "An optimization problem with a cubic objective and linearized rewards.",
-  ], 0, "QP.", "Quadratic programs are efficient and appear in control allocation and whole-body control.", "Many constrained controllers solve QPs every cycle."),
-  q(53, "Numerical Optimization", "hard", "Starter", 15, "Why are gradients important in numerical optimization?", [
-    "They indicate how the objective changes with respect to variables.",
-    "They directly solve the optimization without iteration.",
-    "They remove the need for constraints in robotics models.",
-    "They guarantee robustness against all model mismatch.",
-  ], 0, "Direction of improvement.", "Gradients guide first-order optimization methods toward lower-cost solutions.", "Trajectory optimizers often rely on gradient information."),
-  q(54, "Numerical Optimization", "hard", "Starter", 15, "What is trajectory optimization in robotics?", [
-    "Optimizing a sequence of states and controls subject to dynamics and constraints.",
-    "Optimizing only the final goal position without intermediate states.",
-    "Optimizing only a perception model without dynamics.",
-    "Optimizing a map representation without a cost function.",
-  ], 0, "Motion as optimization.", "Trajectory optimization formulates motion planning and control as constrained optimization over time.", "Legged and aerial planners commonly use it."),
-  q(55, "Numerical Optimization", "hard", "Starter", 15, "Why is warm-starting useful in receding-horizon control?", [
-    "It initializes the next solve near a previous solution to reduce computation.",
-    "It guarantees the next solve has zero suboptimality.",
-    "It removes the need for constraints in the horizon.",
-    "It replaces the dynamics model with sensor feedback.",
-  ], 0, "Reuse previous solutions.", "Warm-starts are useful because adjacent MPC problems are often similar.", "They can significantly reduce solve time in practice."),
-  q(56, "Numerical Optimization", "hard", "Research", 20, "In modern robotics papers, why are differentiable simulators attractive for optimization?", [
-    "They provide gradients through system evolution for learning and control optimization.",
-    "They remove the need for any physical model in simulation.",
-    "They guarantee sim-to-real transfer without domain gaps.",
-    "They replace state estimators with exact observation models.",
-  ], 0, "Gradients through physics.", "Differentiable simulation enables end-to-end optimization by propagating gradient information through dynamic rollouts.", "Recent robotics research uses this for policy learning and system identification."),
-  q(57, "Numerical Optimization", "hard", "Research", 20, "Why do contact-implicit optimization methods remain challenging in robotics research?", [
-    "Because contacts introduce non-smooth constraints, complementarity and many local minima.",
-    "Because contacts make all optimization objectives strictly convex.",
-    "Because contacts remove friction and simplify the dynamics strongly.",
-    "Because contacts eliminate the need for state constraints.",
-  ], 0, "Non-smooth contact.", "Contact-rich planning is difficult because the underlying optimization is hybrid and often poorly conditioned.", "Manipulation and locomotion papers still study better formulations for this."),
-  q(58, "Numerical Optimization", "hard", "Research", 20, "Why is iLQR popular in research on robot control and planning?", [
-    "It iteratively approximates nonlinear optimal control with local quadratic models.",
-    "It solves only linear programs with no dynamics approximation.",
-    "It guarantees global optimality for every nonconvex robotics problem.",
-    "It removes the need for backward passes in trajectory improvement.",
-  ], 0, "Iterative local approximation.", "Iterative LQR uses local linearization and quadratic cost approximation to improve a control trajectory efficiently.", "It remains popular for nonlinear control and model-based planning research."),
-  q(59, "Numerical Optimization", "hard", "Research", 20, "Why do research papers often combine sampling and optimization in motion planning?", [
-    "Sampling provides feasibility while optimization improves smoothness, cost and dynamics consistency.",
-    "Sampling guarantees optimality and optimization guarantees feasibility independently.",
-    "Sampling removes collision checking while optimization removes dynamics.",
-    "Sampling eliminates the need for state representations in planning.",
-  ], 0, "Complementary strengths.", "Hybrid pipelines use sampling for exploration and optimization for refinement.", "This combination is common in planning systems for manipulators and mobile robots."),
-  q(60, "Numerical Optimization", "hard", "Research", 20, "Why are learned optimizers or learned cost terms appearing in recent robotics papers?", [
-    "They can inject data-driven priors into planning and control objectives.",
-    "They make optimization unnecessary by definition.",
-    "They remove the need for robot models and sensor inputs.",
-    "They guarantee safety in all unseen operating regimes.",
-  ], 0, "Data-driven priors.", "Recent work explores combining classical optimization with learned components to improve efficiency and task performance.", "This trend appears in planning, manipulation and driving research."),
+  // ── CALM: Computation ─────────────────────────────────────────────────────
+  q(1116,"Computation","calm","Easy",10,"What architectural feature distinguishes a GPU from a CPU for deep learning inference?",["GPUs have thousands of simpler SIMD cores optimised for data-parallel matrix operations; CPUs have fewer but more complex out-of-order cores.","GPUs have larger individual caches and higher single-thread clock speeds.","CPUs are faster for all robotics workloads.","GPUs operate on integers only; CPUs handle floating-point natively."],0,"Thousands of SIMD cores for parallelism.","Modern GPUs have thousands of CUDA cores optimised for FP16 tensor operations vs 16-64 CPU cores designed for serial tasks.","Robot perception stacks run CNNs on GPU while planning runs on CPU concurrently."),
+  q(1117,"Computation","calm","Easy",10,"What is the purpose of Direct Memory Access (DMA) in embedded robot systems?",["DMA transfers data between peripherals and memory without CPU involvement freeing the CPU for control computation.","DMA doubles the processor clock speed.","DMA is a memory protection mechanism preventing peripheral access to code.","DMA replaces the OS scheduler for real-time task switching."],0,"CPU-free peripheral data transfer.","IMU, encoder, and ADC data can be streamed into RAM via DMA while the CPU executes the control algorithm.","High-frequency servo controllers use DMA for deterministic loop timing."),
+  q(1118,"Computation","calm","Easy",10,"What distinguishes throughput from latency in a robot perception pipeline?",["Throughput: frames per second; latency: time from sensor capture to decision output for a single frame.","Throughput and latency are inversely proportional for all pipelined systems.","Latency is the inverse of throughput for any processor.","Throughput measures memory bandwidth; latency measures computation time."],0,"Rate vs per-sample delay.","High throughput with high latency means many frames are pipelined simultaneously; low latency is critical for closed-loop control.","A 10 Hz perception loop may have 100 ms latency yet high throughput via batching."),
+  q(1119,"Computation","calm","Medium",15,"Why does quantisation of neural network weights reduce inference latency on edge hardware?",["INT8 or INT4 weights reduce memory footprint and enable faster integer SIMD operations vs FP32 fitting more data in cache.","Quantisation removes non-essential layers reducing computation.","Quantisation increases weight precision making the network faster.","It replaces convolution with correlation which is computationally cheaper."],0,"Integer ops plus smaller memory leads to faster inference.","FP32 to INT8 reduces model size 4x; NPUs execute INT8 ops at peak throughput orders of magnitude above FP32.","TensorRT and TFLite quantise robot vision models for real-time edge deployment."),
+  q(1120,"Computation","calm","Medium",15,"What is the difference between preemptive and cooperative multitasking in a real-time robot OS?",["Preemptive: the scheduler can interrupt any task; cooperative: tasks yield voluntarily risking deadline misses if a task runs too long.","Cooperative is always faster because it avoids context-switch overhead.","Preemptive scheduling is only available on multicore processors.","Both models guarantee the same worst-case latency."],0,"Forced vs voluntary context switching.","Preemptive RTOS (FreeRTOS, Xenomai) guarantee that a high-priority task runs within bounded time after its deadline.","Motor control loops require preemptive scheduling to meet microsecond deadlines."),
+  q(1121,"Computation","calm","Hard",20,"Why does Amdahl law limit speedup when parallelising a robot perception pipeline?",["The non-parallelisable serial fraction s sets an upper bound of 1/s on total speedup regardless of the number of processors.","Amdahl law only applies to GPU parallelism.","Adding processors always linearly increases speedup.","The law bounds memory bandwidth not computation speed."],0,"Serial bottleneck limits parallelism: speedup <= 1/s.","Speedup = 1/(s + (1-s)/N); if 10% is serial max speedup approaches 10x even with infinite cores.","Pre/post-processing serial steps often bottleneck GPU-accelerated neural inference."),
+  q(1122,"Computation","calm","Hard",20,"How does the ONNX format benefit robot deployment across heterogeneous hardware?",["ONNX provides a hardware-agnostic intermediate representation allowing models trained in one framework to be compiled for different target accelerators.","ONNX compresses weights using lossless encoding for edge deployment.","ONNX is a runtime that executes models faster than TensorFlow or PyTorch natively.","ONNX converts neural networks into C code for MCU deployment."],0,"Hardware-agnostic IR enables cross-platform deployment.","A model exported to ONNX can be compiled by TensorRT (NVIDIA), OpenVINO (Intel), or CoreML (Apple).","Robot stacks train in PyTorch export to ONNX then compile for Jetson or Coral."),
+  q(1123,"Computation","calm","Hard",20,"Why does neuromorphic computing offer potential advantages for event-driven robot sensing?",["Spiking neural networks process only when events occur matching event cameras with orders-of-magnitude lower power.","Neuromorphic chips run standard deep learning models faster than GPUs.","Neuromorphic computing eliminates digital-to-analogue conversion in sensors.","Loihi is faster than GPUs only for dense matrix operations."],0,"Event-driven computation matches asynchronous event sensors.","Loihi spike-based computation is activated only when input spikes arrive; idle power is minimal.","Research combines event cameras with Loihi for sub-millisecond obstacle detection."),
+  q(1124,"Computation","calm","Hard",20,"What is time-sensitive networking (TSN) and why is it important for distributed real-time robot control?",["TSN (IEEE 802.1) adds deterministic latency guarantees and priority-based preemption to Ethernet for control network traffic.","TSN is a wireless protocol that reduces interference in multi-robot communication.","TSN replaces CAN bus by increasing bandwidth without latency guarantees.","TSN is a software scheduling algorithm for single-board computers."],0,"Deterministic Ethernet for real-time control networks.","Standard Ethernet is best-effort; TSN adds credit-based shaping and frame preemption to guarantee bounded latency for control messages.","Industrial robot cells and autonomous vehicles use TSN to synchronise perception planning and actuation."),
+  q(1125,"Computation","calm","Hard",20,"Why does the memory wall problem disproportionately affect sparse robot computation tasks like graph search?",["Sparse data structures cause irregular memory access patterns with poor cache locality making memory bandwidth the bottleneck.","The memory wall only affects dense matrix operations in neural networks.","Sparse computation is faster than dense regardless of memory patterns.","Graph search is compute-bound because each node evaluation requires complex arithmetic."],0,"Irregular access destroys cache locality.","Dense neural network layers have predictable sequential access (cache-friendly); graph edges point to arbitrary memory locations causing frequent cache misses.","Hardware accelerators for path planning use memory-aware data layouts."),
 
-  // HARD — Reinforcement Learning
-  q(61, "Reinforcement Learning", "hard", "Starter", 15, "What does a policy represent in reinforcement learning?", [
-    "A mapping from states or observations to actions.",
-    "A mapping from actions to rewards only.",
-    "A mapping from rewards to observations only.",
-    "A mapping from dynamics to labels only.",
-  ], 0, "State to action.", "A policy tells the agent what action to choose given its current information.", "Policies may be deterministic or stochastic."),
-  q(62, "Reinforcement Learning", "hard", "Starter", 15, "What is a value function?", [
-    "An estimate of expected future cumulative reward.",
-    "An estimate of current observation noise only.",
-    "An estimate of state dimensionality only.",
-    "An estimate of control frequency only.",
-  ], 0, "Future return.", "Value functions summarize how good states or actions are under a policy.", "They guide policy improvement in many RL algorithms."),
-  q(63, "Reinforcement Learning", "hard", "Starter", 15, "Why is exploration necessary in reinforcement learning?", [
-    "The agent must try actions to discover better long-term strategies.",
-    "The agent must avoid all unknown actions to stay optimal.",
-    "The agent must eliminate rewards during early training.",
-    "The agent must only replay expert data forever.",
-  ], 0, "Trying new actions matters.", "Without exploration, the agent may never discover better policies.", "Exploration-exploitation balance is central to RL."),
-  q(64, "Reinforcement Learning", "hard", "Starter", 15, "What is the reward function in RL?", [
-    "A signal describing task desirability of actions or outcomes.",
-    "A guaranteed terminal policy produced by the optimizer.",
-    "A covariance matrix describing observation uncertainty.",
-    "A rigid-body model describing robot geometry.",
-  ], 0, "Task objective signal.", "The reward defines what the agent is encouraged to achieve.", "Poor reward design can lead to unintended behavior."),
-  q(65, "Reinforcement Learning", "hard", "Starter", 15, "Why is sim-to-real transfer hard in robot RL?", [
-    "The simulated environment never matches the real world perfectly.",
-    "The simulated environment exactly matches every real deployment condition.",
-    "The simulated environment removes perception from the problem entirely.",
-    "The simulated environment guarantees contact dynamics are always correct.",
-  ], 0, "Reality gap.", "Differences in sensing, dynamics and contact can cause policies to fail when moved from simulation to hardware.", "Domain randomization is one common mitigation strategy."),
-  q(66, "Reinforcement Learning", "hard", "Research", 20, "Why are diffusion-policy ideas interesting in recent robot learning papers?", [
-    "They model multimodal action distributions and can represent diverse expert-like behaviors.",
-    "They remove the need for any training data in imitation or RL.",
-    "They guarantee hard-real-time control for every robot platform.",
-    "They replace policy optimization with deterministic finite-state machines.",
-  ], 0, "Multimodal action modeling.", "Diffusion-based policies have become popular because many robotic tasks admit multiple valid action sequences.", "Manipulation research has explored this heavily."),
-  q(67, "Reinforcement Learning", "hard", "Research", 20, "Why do offline RL papers matter for robotics?", [
-    "They aim to learn useful policies from fixed datasets without dangerous online trial-and-error.",
-    "They assume unlimited online interaction is always safe and cheap.",
-    "They remove the need for policies and learn only reward models.",
-    "They guarantee perfect generalization to all unseen tasks.",
-  ], 0, "Fixed dataset learning.", "Offline RL is attractive because real-robot data collection can be expensive or unsafe.", "It is especially relevant in industrial and autonomous-driving contexts."),
-  q(68, "Reinforcement Learning", "hard", "Research", 20, "Why is credit assignment hard in long-horizon robotics tasks?", [
-    "Important rewards may occur long after the actions that caused them.",
-    "Rewards always occur immediately after every action in robotics.",
-    "Long-horizon tasks remove the need for temporal reasoning.",
-    "Long-horizon tasks make exploration unnecessary.",
-  ], 0, "Delayed consequences.", "A manipulation or navigation success may depend on early actions whose effect is visible only much later.", "This makes policy learning harder."),
-  q(69, "Reinforcement Learning", "hard", "Research", 20, "Why do many recent robot RL papers combine model-based and model-free ideas?", [
-    "They seek both data efficiency from models and expressiveness from direct policy learning.",
-    "They seek to eliminate all uncertainty by combining two equivalent methods.",
-    "They seek to replace reward functions with kinematic constraints only.",
-    "They seek to guarantee globally optimal exploration in every environment.",
-  ], 0, "Hybrid strengths.", "Research often blends predictive modeling with policy optimization to improve sample efficiency and robustness.", "This is a recurring theme in robot control papers."),
-  q(70, "Reinforcement Learning", "hard", "Research", 20, "Why is distribution shift a major issue in robot learning?", [
-    "Policies may encounter states at deployment that differ from the training distribution.",
-    "Policies always see identical state distributions during training and deployment.",
-    "Distribution shift removes the need for robust policy evaluation.",
-    "Distribution shift only affects linear systems and not learned policies.",
-  ], 0, "Train-test mismatch.", "Robot policies can fail badly when real-world states differ from those seen in data or simulation.", "Robustness to shift is an active research topic."),
+// ── COMPETITIVE: Numerical Optimization ───────────────────────────────────
+  q(2001,"Numerical Optimization","competitive","Starter",15,"Why does gradient descent on a non-convex loss surface not guarantee finding a global minimum?",["Non-convex surfaces have multiple local minima and saddle points; gradient descent follows local descent and can terminate at any stationary point.","Gradient descent always converges to the global minimum given a small enough learning rate.","Non-convex surfaces have no local minima only saddle points.","Gradient descent is only defined for convex functions."],0,"Local stationarity does not equal global optimality.","Without convexity, the gradient being zero can be a local min, max, or saddle; gradient descent is attracted to whichever stationary point it reaches first.","Neural network training navigates this with stochastic updates and momentum."),
+  q(2002,"Numerical Optimization","competitive","Starter",15,"What is a quadratic program and why is it efficiently solvable in robot control loops?",["A QP has a quadratic objective with linear constraints admitting globally optimal solutions via active-set or interior-point methods in polynomial time.","QPs are efficient because they avoid computing any gradients.","QPs are efficient only when the Hessian is diagonal.","QPs are equivalent to linear programs when equality constraints are added."],0,"Convex QP: global optimum efficiently via KKT.","The KKT conditions for a QP are linear enabling direct solution; active-set methods update the constraint set incrementally for warm-starting.","Whole-body robot controllers solve 100+ variable QPs at 1 kHz."),
+  q(2003,"Numerical Optimization","competitive","Starter",15,"Why does Newton method converge faster than gradient descent near a minimum?",["The Hessian captures local curvature scaling steps by inverse curvature for quadratic convergence.","The Hessian replaces the gradient eliminating first-order information.","Newton method needs fewer function evaluations because it skips iterations.","The Hessian projects the gradient onto the feasible set."],0,"Curvature-scaled steps lead to quadratic convergence.","Gradient descent ignores curvature taking uniform steps; Newton scales by H^{-1} grad_f taking larger steps in flat directions and smaller in curved ones.","Quasi-Newton methods (BFGS, L-BFGS) approximate H^{-1} to avoid O(n^3) factorisation."),
+  q(2004,"Numerical Optimization","competitive","Starter",15,"What do the KKT conditions provide for constrained optimisation problems?",["Necessary conditions for a local optimum: stationarity, primal/dual feasibility, and complementary slackness.","Sufficient conditions for global optimality for any smooth problem.","A direct solution to the primal problem without dual variables.","They are applicable only to equality-constrained problems."],0,"Necessary conditions at a constrained optimum.","At a local minimum: grad_f + sum lambda_i*grad_g_i = 0, lambda_i >= 0, lambda_i*g_i = 0; for convex problems these are also sufficient.","Robot contact force optimisation checks KKT to verify solution validity."),
+  q(2005,"Numerical Optimization","competitive","Starter",15,"Why is warm-starting critical for MPC on embedded robot hardware?",["The previous solution provides a near-feasible initial guess dramatically reducing iterations needed within the control cycle.","Warm-starting guarantees global optimality of the MPC solution.","It allows MPC to skip the constraint satisfaction step on the first iteration.","Warm-starting is equivalent to increasing the prediction horizon."],0,"Near-feasible init reduces iterations within the control cycle.","MPC re-solves a similar problem every cycle; the previous solution shifted by one timestep often satisfies constraints nearly converging in 1-3 iterations.","Without warm-starting cold-start interior-point methods take 20-50 iterations missing real-time deadlines."),
+  q(2006,"Numerical Optimization","competitive","Research",20,"Why do interior-point methods have polynomial iteration complexity while simplex can be exponential in the worst case?",["Interior-point methods follow a central path through the feasible interior with provably polynomial iteration complexity; simplex traverses vertices that can be exponentially many.","Interior-point methods avoid the feasible set; simplex stays inside it.","Simplex has polynomial average-case complexity; interior-point is exponential.","Both have identical theoretical complexity; differences are only practical."],0,"Central path: polynomial; vertex walk: potentially exponential.","Interior-point reduces a primal-dual system at each step with iteration count O(sqrt(n) log(1/epsilon)); simplex can visit exponentially many vertices in degenerate cases.","OSQP and qpOASES are standard primal-dual interior-point solvers in robot control."),
+  q(2007,"Numerical Optimization","competitive","Research",20,"How does ADMM exploit problem structure for distributed multi-robot optimisation?",["ADMM decomposes the problem into smaller subproblems solved by individual robots coordinating via dual variable updates to reach consensus.","ADMM is a gradient method alternating between primal and dual steps.","ADMM requires a centralised coordinator that solves the full problem at each step.","ADMM converges only for quadratic objectives without constraints."],0,"Decompose, local solve, dual update, consensus.","ADMM: minimise f(x)+g(z) s.t. Ax+Bz=c via alternating x-update, z-update, and dual update; each subproblem is solved independently.","Multi-robot trajectory planning uses ADMM to coordinate without sharing full state."),
+  q(2008,"Numerical Optimization","competitive","Research",20,"What makes contact-implicit trajectory optimisation fundamentally harder than contact-explicit methods?",["Contact-implicit formulations include contact forces and modes as optimisation variables creating non-smooth complementarity constraints that are non-convex and combinatorial.","Contact-implicit methods are always simpler because they avoid discrete mode enumeration.","Contact-explicit methods must solve mixed-integer programs; contact-implicit avoids integers entirely.","The difficulty is identical; only the solution representation differs."],0,"Non-smooth complementarity plus combinatorial contact modes.","Contact complementarity: f_n >= 0, d >= 0, f_n*d = 0 creates non-convex non-smooth constraints; mode enumeration explodes combinatorially.","MPCC and relaxation methods address contact-implicit optimisation."),
+  q(2009,"Numerical Optimization","competitive","Research",20,"Why does iLQR achieve super-linear convergence near the optimal trajectory despite using only local quadratic approximations?",["Near the optimum the quadratic approximation is tight; the backward Riccati pass solves the local LQR exactly giving Newton-like convergence.","iLQR converges slowly because it ignores second-order coupling.","Super-linear convergence comes from the line search doubling the step size.","iLQR converges at a linear rate; super-linear applies only to DDP."],0,"Tight local quadratic plus exact Riccati solve gives Newton-like convergence.","iLQR solves the backward Riccati pass exactly for the local LQR problem; this is equivalent to one Newton step on the stationarity conditions.","Differential Dynamic Programming (DDP) adds second-order terms for even faster convergence."),
+  q(2010,"Numerical Optimization","competitive","Research",20,"How does sum-of-squares (SOS) programming certify global optimality for polynomial robot planning problems?",["SOS relaxes polynomial optimisation to a semidefinite program whose feasibility certifies the polynomial is globally non-negative bounding the optimal value.","SOS finds the global optimum by factoring the objective into linear terms.","SOS applies only to convex polynomial objectives without constraints.","SOS relaxations are always tight for any polynomial program."],0,"SDP relaxation certifies non-negativity and provides a lower bound on the minimum.","A polynomial p(x) >= 0 iff it can be written as a sum of squares; checking SOS-feasibility via SDP provides a lower bound.","DSOS/SDSOS methods use cheaper relaxations for real-time robot safety verification."),
+  q(2011,"Numerical Optimization","competitive","Research",20,"What is the Moreau envelope and how does it regularise non-smooth optimisation in robotics?",["The Moreau envelope smooths a non-smooth function by inf-convolution with a quadratic penalty creating a differentiable approximation with the same minimisers.","The Moreau envelope adds a hard constraint enforcing trajectory smoothness.","It converts inequality constraints to equality constraints.","The Moreau envelope is identical to the Lagrangian dual function."],0,"Inf-convolution with quadratic creates a smooth approximation.","M_gamma_f(x) = inf_y [f(y) + (1/2*gamma)||x-y||^2]; the minimiser of f equals the minimiser of M_gamma_f but M_gamma_f is differentiable even when f is not.","Proximal gradient methods for contact-rich manipulation use Moreau envelopes of contact forces."),
+  q(2012,"Numerical Optimization","competitive","Research",20,"How does Pontryagin minimum principle specify optimal control via the Hamiltonian?",["PMP states that optimal control minimises H = L + lambda^T f at each instant; the costate lambda satisfies adjoint equations.","PMP is a discretisation of the Hamilton-Jacobi-Bellman equation.","The Hamiltonian in PMP equals the total mechanical energy of the robot.","PMP applies only to linear systems; nonlinear systems must use HJB."],0,"Optimal control minimises Hamiltonian; costate from adjoint equations.","H(x,u,lambda) = L(x,u) + lambda^T*f(x,u); u* = argmin_u H; lambda_dot = -partial_H/partial_x.","Indirect methods for robot trajectory optimisation solve the boundary-value problem from PMP."),
+  q(2013,"Numerical Optimization","competitive","Research",20,"Why does the primal-dual interior-point method become numerically ill-conditioned near the boundary of the feasible set?",["Barrier functions and slack variables approach zero near constraints making the KKT matrix ill-conditioned as the central-path parameter approaches 0.","Ill-conditioning only occurs for non-convex objectives.","The KKT matrix remains well-conditioned throughout interior-point iterations.","Ill-conditioning only arises when equality constraints are present."],0,"Slacks approaching zero near boundary make KKT system ill-conditioned.","The KKT matrix includes terms proportional to 1/s (slack inverse); as s approaches 0 these dominate and condition number grows.","Mehrotra predictor-corrector steps and regularisation mitigate numerical ill-conditioning."),
+  q(2014,"Numerical Optimization","competitive","Research",20,"What is the Frank-Wolfe algorithm advantage for robot motion planning under L1-ball constraints?",["Frank-Wolfe linearises the objective and solves a linear program over the constraint set producing sparse iterates that satisfy L1 constraints without projection.","Frank-Wolfe is faster because it computes the Hessian at each step.","Frank-Wolfe is equivalent to gradient descent with a fixed step size.","It avoids computing gradients of the constraint set."],0,"Linear minimisation oracle produces sparse iterates without projection.","At each step: s = argmin_{x in C} grad_f(x_t)^T*x (LMO) then x_{t+1} = (1-gamma)*x_t + gamma*s; L1-ball LMO is cheap and yields sparse solutions.","Sparse waypoint generation for robot trajectories benefits from Frank-Wolfe sparsity."),
+  q(2015,"Numerical Optimization","competitive","Research",20,"How do chance constraints in stochastic MPC differ from deterministic constraints and why are they harder?",["Chance constraints require P(g(x,w) <= 0) >= 1-epsilon for uncertain w coupling the constraint to the distribution of uncertainty rather than worst-case bounds.","Chance constraints are identical to robust constraints but with a tighter bound.","Stochastic MPC replaces constraints with soft penalties.","Chance constraints are easier because they allow more frequent violation."],0,"Probabilistic satisfaction couples constraint to the uncertainty distribution.","Deterministic: g(x) <= 0 always; chance: P(g(x,w) <= 0) >= 1-epsilon for random w; the feasible set depends on the distribution requiring scenario sampling or analytical approximation.","Autonomous driving MPC uses chance constraints for uncertain pedestrian trajectories."),
 
-  // HARD — Foundation Models
-  q(71, "Foundation Models", "hard", "Starter", 15, "What is a foundation model in the robotics context?", [
-    "A large pretrained model intended to generalize across many tasks and inputs.",
-    "A small task-specific controller used only for one manipulator.",
-    "A deterministic optimizer used only for one cost function.",
-    "A rigid-body simulator used only for one environment.",
-  ], 0, "Large pretrained generalist.", "Foundation models are trained broadly and then adapted to many downstream uses.", "In robotics they may combine language, vision and action understanding."),
-  q(72, "Foundation Models", "hard", "Starter", 15, "Why is multimodality important for robot foundation models?", [
-    "Robots must connect language, vision, state and action information.",
-    "Robots only need text and never need sensor observations.",
-    "Robots only need images and never need actions.",
-    "Robots only need actions and never need scene context.",
-  ], 0, "Many input and output types.", "Robots operate in physical environments, so useful models must connect different modalities coherently.", "Instruction following often requires language plus perception."),
-  q(73, "Foundation Models", "hard", "Starter", 15, "What is one major challenge in using language models for robotics?", [
-    "They often lack grounded physical reasoning and real-time embodiment awareness.",
-    "They naturally satisfy all safety constraints in physical systems.",
-    "They directly output low-level torques with guaranteed stability.",
-    "They remove the need for calibration or perception entirely.",
-  ], 0, "Text models are not automatically embodied.", "Language competence alone does not guarantee correct reasoning about geometry, contact, timing or safety.", "Grounding remains a major challenge."),
-  q(74, "Foundation Models", "hard", "Starter", 15, "Why are robot demonstrations useful for foundation-model adaptation?", [
-    "They provide grounded examples linking perception, instruction and action.",
-    "They remove the need for pretraining on diverse data.",
-    "They guarantee optimal control for all new tasks.",
-    "They replace all symbolic reasoning automatically.",
-  ], 0, "Grounded action data.", "Demonstrations help bridge abstract semantics and concrete robot behavior.", "Instruction-conditioned imitation is one common approach."),
-  q(75, "Foundation Models", "hard", "Starter", 15, "Why is data scale important for foundation models?", [
-    "Large and diverse data supports broader generalization.",
-    "Small and narrow data always generalizes better by design.",
-    "Data scale removes the need for architecture design.",
-    "Data scale eliminates sensor noise in deployment.",
-  ], 0, "Breadth matters.", "Foundation models rely on broad data coverage to learn reusable patterns across tasks and domains.", "Scale is one reason they can transfer better than narrow models."),
-  q(76, "Foundation Models", "hard", "Research", 20, "Why do recent robotics workshops emphasize neuro-symbolic or language-grounded robot models?", [
-    "They aim to combine broad semantic reasoning with structured physical constraints and task logic.",
-    "They aim to remove all symbolic structure from robot reasoning permanently.",
-    "They aim to replace perception with hand-coded battery models.",
-    "They aim to eliminate action execution from embodied systems.",
-  ], 0, "Semantics plus structure.", "Current robotics research explores how large models can be grounded with structured planning, world knowledge and safety constraints.", "This theme appears in recent foundation-model workshops and papers."),
-  q(77, "Foundation Models", "hard", "Research", 20, "Why are vision-language-action models interesting in robotics research?", [
-    "They directly connect perception, instruction and action generation in one framework.",
-    "They guarantee stable torque control without robot hardware models.",
-    "They remove the need for robot datasets because language alone is enough.",
-    "They only work for static image captioning tasks.",
-  ], 0, "Perception-to-action bridge.", "Vision-language-action models are attractive because they promise a more unified pipeline from observation and instruction to behavior.", "They are a major embodied-AI research direction."),
-  q(78, "Foundation Models", "hard", "Research", 20, "Why is temporal reasoning still difficult for robot foundation models?", [
-    "Physical tasks require long-horizon state evolution, causality and timing awareness.",
-    "Temporal reasoning disappears once images are embedded into tokens.",
-    "Robots operate only on static snapshots with no sequential dependency.",
-    "Physical tasks never depend on action order or delay.",
-  ], 0, "Embodied tasks unfold over time.", "Many model failures come from weak reasoning about future consequences, durations and state transitions.", "Long-horizon sequencing remains a key challenge."),
-  q(79, "Foundation Models", "hard", "Research", 20, "Why is grounding a major theme in embodied AI research?", [
-    "Because symbols or tokens must connect to real sensorimotor meaning in the world.",
-    "Because grounding means removing all perception from robot models.",
-    "Because grounding guarantees a model is globally optimal.",
-    "Because grounding makes action execution unnecessary.",
-  ], 0, "Meaning must connect to physical experience.", "A robot must tie abstract representations to actual objects, geometry, actions and consequences.", "Grounding is central to usable embodied intelligence."),
-  q(80, "Foundation Models", "hard", "Research", 20, "Why do recent robotics papers discuss world models together with foundation models?", [
-    "Because predictive latent models may support planning, reasoning and data-efficient behavior.",
-    "Because world models remove the need for any sensory input during deployment.",
-    "Because world models are identical to static language embeddings.",
-    "Because world models guarantee zero-shot success on all tasks.",
-  ], 0, "Prediction for planning.", "World models aim to represent environment dynamics compactly so the agent can reason about future outcomes.", "This idea is increasingly tied to embodied foundation-model research."),
+  // ── COMPETITIVE: Reinforcement Learning ───────────────────────────────────
+  q(2016,"Reinforcement Learning","competitive","Starter",15,"What distinguishes on-policy from off-policy reinforcement learning?",["On-policy learns the value of the current behaviour policy; off-policy learns a target policy different from the data-collection policy.","On-policy methods require a model of the environment; off-policy do not.","Off-policy algorithms always converge faster.","On-policy methods cannot handle continuous action spaces."],0,"Target policy vs behaviour policy.","SARSA is on-policy (evaluates the policy that generated data); Q-learning is off-policy (targets the greedy policy regardless of behaviour).","Off-policy enables experience replay with data from any policy."),
+  q(2017,"Reinforcement Learning","competitive","Starter",15,"Why does the temporal difference error drive learning in value-based RL?",["TD error = r + gamma*V(s') - V(s) measures discrepancy between current estimates and bootstrapped returns providing a training signal without full trajectories.","TD error measures mean-squared difference between predicted and actual actions.","TD learning requires complete episodes before updating unlike Monte Carlo.","TD error equals the gradient of the policy with respect to state value."],0,"Bootstrap target minus current estimate equals online learning signal.","TD combines one-step reward with bootstrapped future value; this signal enables within-episode learning.","Q-learning, DQN, and TD3 all use TD errors as their core update signal."),
+  q(2018,"Reinforcement Learning","competitive","Starter",15,"What is the policy gradient theorem and why is it important for continuous action spaces?",["It provides an analytical expression for the gradient of expected return: grad_J(theta) = E[grad_log_pi(a|s) * Q(s,a)].","It proves all policies converge to the optimal policy.","It converts RL to supervised learning with TD errors as labels.","It applies only to deterministic policies."],0,"Gradient of expected return enables direct gradient ascent.","The theorem avoids differentiating through the environment enabling gradient-based policy optimisation in continuous action spaces.","REINFORCE, PPO, and SAC all build on the policy gradient theorem."),
+  q(2019,"Reinforcement Learning","competitive","Starter",15,"What problem does the actor-critic architecture solve compared to pure policy gradient methods?",["The critic estimates a baseline (value function) reducing variance of policy gradient estimates while keeping them unbiased.","Actor-critic eliminates the need for any value function.","The critic replaces the reward signal with a learned reward model.","Actor-critic combines model-based and model-free methods."],0,"Variance reduction via critic baseline.","REINFORCE has high variance (full-return Monte Carlo); the critic value estimate as baseline reduces variance without adding bias.","A2C, PPO, and SAC all use actor-critic architectures."),
+  q(2020,"Reinforcement Learning","competitive","Starter",15,"Why does experience replay stabilise DQN training?",["Randomly sampling past transitions breaks temporal correlations providing approximately i.i.d. training batches.","Experience replay increases the effective number of environment interactions.","It prevents the Q-network from forgetting early experiences.","Experience replay eliminates the need for a target network."],0,"Decorrelates sequential samples for stable gradient updates.","Sequential transitions are highly correlated; batching random samples approximates i.i.d. data stabilising stochastic gradient descent.","Prioritised experience replay samples high-TD-error transitions more frequently."),
+  q(2021,"Reinforcement Learning","competitive","Research",20,"Why does the deadly triad (function approximation, bootstrapping, off-policy) cause instability?",["The bootstrap target depends on the same approximator being updated; with off-policy data the fixed-point iteration can diverge.","The deadly triad is only a theoretical concern; DQN is stable for all tasks.","Bootstrapping is the sole cause; function approximation and off-policy are harmless.","The triad causes instability only in continuous state spaces."],0,"Bootstrap from approximator plus off-policy updates can lead to divergent fixed-point.","The update target r + gamma*Q(s',a') uses the network being updated; with off-policy data the fixed-point iteration can diverge (Baird counterexample).","Target networks in DQN stabilise bootstrap targets."),
+  q(2022,"Reinforcement Learning","competitive","Research",20,"How does maximum entropy RL (soft RL) change the optimisation objective?",["Soft RL maximises expected return plus expected policy entropy encouraging exploration and preventing premature commitment.","Soft RL removes the entropy term to improve convergence.","Maximum entropy RL maximises entropy while ignoring the reward signal.","Soft RL is identical to standard RL but with a different temperature."],0,"Reward plus entropy bonus drives diverse behaviour.","J(pi) = E[sum gamma^t * (r_t + alpha*H(pi(*|s_t)))]; the entropy bonus prevents mode collapse and enables multi-modal policies.","SAC maximises this objective with automatic temperature tuning."),
+  q(2023,"Reinforcement Learning","competitive","Research",20,"Why does distributional RL (C51, QR-DQN) outperform standard Q-learning on many tasks?",["Distributional RL models the full return distribution rather than its expectation preserving multimodality and enabling risk-sensitive optimisation.","It is faster because it requires fewer environment interactions.","It outperforms only in sparse-reward environments.","Distributional methods eliminate bootstrapping avoiding the deadly triad."],0,"Full return distribution vs scalar expectation.","Standard Q-learning collapses the return distribution to its mean losing variance and multimodality; distributional RL preserves these for better representation learning.","IQN and RAINBOW include distributional components as key improvements over DQN."),
+  q(2024,"Reinforcement Learning","competitive","Research",20,"How does hindsight experience replay (HER) address the sparse reward problem?",["HER relabels failed trajectories with the goal that was actually achieved creating artificial successes that provide dense learning signal.","HER densifies reward by adding intermediate sub-goal rewards.","HER uses a generative model to hallucinate successful trajectories.","HER modifies the discount factor to weight sparse rewards more heavily."],0,"Relabel with achieved goal creates dense artificial successes.","For a trajectory ending at s_T != g, HER creates a new transition with goal g' = s_T and reward r = 0 (success) providing training signal even for failures.","Robotic manipulation with 0-1 success rewards converges with HER + DDPG."),
+  q(2025,"Reinforcement Learning","competitive","Research",20,"What theoretical property of the Bellman operator guarantees Q-learning convergence in the tabular setting?",["The Bellman optimality operator is a gamma-contraction under the L-infinity norm guaranteeing a unique fixed point Q* that Q-learning converges to with sufficient exploration.","Q-learning converges because of the replay buffer ensuring ergodicity.","The Bellman operator is a contraction only for deterministic MDPs.","Convergence is guaranteed only with a constant learning rate throughout training."],0,"Gamma-contraction guarantees unique fixed point Q* via Banach fixed-point theorem.","||TQ1 - TQ2||_inf <= gamma||Q1 - Q2||_inf for gamma < 1; Banach guarantees Q-learning converges to Q*.","Function approximation breaks this contraction requiring target networks and gradient clipping."),
+  q(2026,"Reinforcement Learning","competitive","Research",20,"How does GAIL differ from behavioural cloning for robot imitation?",["GAIL trains a discriminator to distinguish agent from expert state-action pairs using its reward signal to train a policy via RL rather than regressing to expert actions.","GAIL directly minimises L2 distance between agent and expert actions.","GAIL is equivalent to behavioural cloning with data augmentation.","GAIL requires a complete environment dynamics model."],0,"Adversarial occupancy measure matching vs direct action regression.","BC minimises E[||pi(s) - pi_E(s)||^2]; GAIL minimises JS divergence between occupancy measures rho_pi and rho_E via a learned adversarial reward.","GAIL avoids the compounding error from distribution shift that plagues behavioural cloning."),
+  q(2027,"Reinforcement Learning","competitive","Research",20,"Why does RLHF require a separate reward model rather than directly using human labels as rewards?",["Human feedback is sparse and expensive; a learned reward model generalises from few labels to dense signals for scalable RL.","Human labels are too noisy to use at all; the reward model filters them.","RLHF directly uses human labels without a reward model in modern implementations.","The reward model converts categorical labels into continuous control signals."],0,"Generalise sparse human labels to dense training signal.","Collecting human preferences on every state-action pair is infeasible; the reward model r_theta(s,a) trained on comparisons generalises to unseen states.","InstructGPT and robot manipulation systems use RLHF for alignment with human intent."),
+  q(2028,"Reinforcement Learning","competitive","Research",20,"What is meta-RL and how does MAML address non-stationary environments?",["Meta-RL learns an initialisation that quickly adapts to new MDPs via a few gradient steps; MAML finds theta such that theta - alpha*grad_L_tau is near-optimal for any task tau.","MAML prevents non-stationarity using target networks.","Meta-RL addresses non-stationarity by averaging gradients across all past environments.","Policy gradients are unaffected by non-stationarity if the learning rate is small enough."],0,"MAML finds a fast-adaptation initialisation via bi-level optimisation.","Standard policy gradient assumes fixed MDP; MAML meta-trains across MDPs so the policy can adapt in one or a few gradient steps at test time.","MAML has been applied to few-shot robot skill adaptation."),
+  q(2029,"Reinforcement Learning","competitive","Research",20,"Why does double DQN address overestimation bias in Q-value targets?",["Double DQN decouples action selection (online network) from action evaluation (target network) preventing the max operator from exploiting estimation noise.","Double DQN uses two separate replay buffers to reduce variance.","It averages two independent Q-value estimates.","Double DQN is identical to DQN but with a larger target network update frequency."],0,"Decoupling selection and evaluation reduces max-bias.","Standard DQN: y = r + gamma*max_{a'} Q_target(s',a'); both selection and evaluation use Q_target inflating Q due to noise correlation.","Double DQN: y = r + gamma*Q_target(s', argmax_{a'} Q_online(s',a'))."),
+  q(2030,"Reinforcement Learning","competitive","Research",20,"What is the fundamental challenge of credit assignment in long-horizon robot manipulation tasks?",["Important rewards may occur long after the actions that caused them making it hard for the policy gradient signal to propagate to early decisions.","Rewards always occur immediately after every action in manipulation.","Long-horizon tasks make exploration unnecessary.","Long-horizon tasks remove the need for temporal reasoning."],0,"Delayed consequences cause vanishing credit signals.","A manipulation success may depend on a grasp choice made 50 steps earlier; the policy gradient signal at that early step is tiny due to gamma^t discounting.","Hierarchical RL and reward shaping are common approaches to credit assignment."),
 
-  // HARD — Aerial Robotics
-  q(81, "Aerial Robotics", "hard", "Starter", 15, "How does a quadrotor generate yaw motion?", [
-    "By creating a net reaction-torque imbalance between clockwise and counterclockwise rotors.",
-    "By increasing total thrust equally on all four rotors.",
-    "By changing only the barometer update frequency.",
-    "By translating the center of mass without rotor-speed change.",
-  ], 0, "Yaw comes from rotor torque imbalance.", "Yaw control changes the relative speeds of opposite spin directions while roughly preserving total thrust.", "This rotates the vehicle about its vertical axis."),
-  q(82, "Aerial Robotics", "hard", "Starter", 15, "Why is attitude control crucial for multirotors?", [
-    "Because the direction of thrust depends on vehicle orientation.",
-    "Because attitude determines battery energy density directly.",
-    "Because attitude eliminates the need for state estimation.",
-    "Because attitude alone determines GPS accuracy.",
-  ], 0, "Orientation changes thrust direction.", "Pitch and roll tilt the body so thrust gains horizontal components, enabling motion control.", "Without stable attitude control, translation is hard to regulate."),
-  q(83, "Aerial Robotics", "hard", "Starter", 15, "What does an IMU provide for UAV control?", [
-    "Angular velocity and linear acceleration measurements.",
-    "Absolute global position and heading in all conditions.",
-    "Direct thrust and torque commands for the motors.",
-    "Semantic scene labels for obstacle maps.",
-  ], 0, "Inertial sensing.", "IMUs provide high-rate motion information used in state estimation and stabilization.", "They are fundamental in flight controllers."),
-  q(84, "Aerial Robotics", "hard", "Starter", 15, "What is hover for a quadrotor?", [
-    "A condition where total thrust approximately balances weight.",
-    "A condition where all rotors are stopped and drag balances weight.",
-    "A condition where yaw torque cancels all aerodynamic drag only.",
-    "A condition where GPS alone maintains altitude.",
-  ], 0, "Lift equals weight approximately.", "Hover occurs when net translational acceleration is near zero and moments are regulated.", "Small control corrections are still needed in practice."),
-  q(85, "Aerial Robotics", "hard", "Starter", 15, "What is motor mixing in a multirotor autopilot?", [
-    "Mapping desired thrust and body torques into individual rotor commands.",
-    "Mapping camera images into rotor-efficiency estimates.",
-    "Mapping battery temperature into GPS corrections.",
-    "Mapping altitude setpoints into sensor covariance matrices.",
-  ], 0, "Control distribution.", "Motor mixing converts collective and attitude demands into motor-level signals according to frame geometry.", "Every multirotor controller uses some mixing strategy."),
-  q(86, "Aerial Robotics", "hard", "Research", 20, "Why are event cameras interesting in aerial-robotics research?", [
-    "They offer high temporal resolution and large dynamic range for fast flight.",
-    "They provide dense absolute depth at every pixel natively.",
-    "They remove the need for inertial sensing during aggressive maneuvers.",
-    "They guarantee perfect scene semantics at all frame rates.",
-  ], 0, "Fast motion perception.", "Event cameras are attractive for high-speed UAV tasks because they react to brightness changes with very low latency.", "They appear often in agile-flight research."),
-  q(87, "Aerial Robotics", "hard", "Research", 20, "Why is nonlinear MPC common in advanced UAV papers?", [
-    "It handles vehicle nonlinearities and constraints more explicitly than simple linear controllers.",
-    "It removes the need for any state estimate or model.",
-    "It guarantees zero computation time on embedded hardware.",
-    "It turns every underactuated UAV into a fully actuated system.",
-  ], 0, "Nonlinear dynamics plus constraints.", "Aggressive flight and obstacle-rich motion often require planners/controllers that reason with nonlinear dynamics directly.", "Research UAV stacks frequently use nonlinear MPC."),
-  q(88, "Aerial Robotics", "hard", "Research", 20, "Why is perception-aware planning studied in UAV research?", [
-    "Control actions can affect how well the vehicle can localize and observe the scene.",
-    "Control actions are always independent of sensing quality in flight.",
-    "Perception-aware planning means removing dynamics from the planner.",
-    "Perception-aware planning only matters when GPS is perfect.",
-  ], 0, "Motion influences sensing.", "The chosen path can improve or degrade visual observability, feature quality and state-estimation performance.", "This coupling is a major research topic."),
-  q(89, "Aerial Robotics", "hard", "Research", 20, "Why do some recent UAV papers combine learning with classical control?", [
-    "Learning can model residual effects while classical control preserves structure and stability.",
-    "Learning can remove the need for all aerodynamics and state estimation.",
-    "Classical control can be discarded once a small neural net is added.",
-    "The combination guarantees sim-to-real transfer with no tuning.",
-  ], 0, "Residual learning plus structure.", "Hybrid approaches use learning to capture unmodeled dynamics while retaining strong model-based control backbones.", "This is common in high-performance flight research."),
-  q(90, "Aerial Robotics", "hard", "Research", 20, "Why is thrust-to-weight ratio important for agile UAVs?", [
-    "It strongly affects maneuverability, recovery authority and disturbance rejection.",
-    "It only matters for battery charging, not flight dynamics.",
-    "It affects yaw sensing but not translational control.",
-    "It determines GPS observability more than actuation limits.",
-  ], 0, "Actuation authority.", "Higher thrust-to-weight ratios allow faster acceleration and more aggressive maneuvers, though often at energy cost.", "Racing drones are a familiar example."),
+  // ── COMPETITIVE: Foundation Models ────────────────────────────────────────
+  q(2031,"Foundation Models","competitive","Starter",15,"Why do LLMs trained on internet text not automatically possess grounded physical understanding?",["Text describes the physical world but lacks embodied sensorimotor experience; spatial force and temporal relationships are only partially captured in language.","LLMs lack physical understanding because they are not trained on enough text.","Physical grounding is absent because LLMs use attention instead of convolution.","LLMs have full physical understanding accessible via the right prompts."],0,"Language approximates but does not ground physics.","The symbol grounding problem: words like weight or smooth refer to physical experiences absent from text training; robots need action-perception loops to ground these concepts.","PaLM-E and RT-2 attempt to ground LLMs through embodied training."),
+  q(2032,"Foundation Models","competitive","Starter",15,"What does the scaling hypothesis state about large foundation models?",["Model capability improves predictably with scale (parameters, data, compute) following power-law scaling laws.","Scaling beyond a threshold causes capability degradation due to overfitting.","Scaling laws apply only to language models not vision or robotics models.","Doubling parameters always doubles model accuracy."],0,"Capability scales predictably via power laws.","Kaplan et al showed log-linear scaling of cross-entropy loss with N, D, and C; this motivated investment in larger models.","The hypothesis underpins the race to scale robot foundation models like RT-2."),
+  q(2033,"Foundation Models","competitive","Starter",15,"What distinguishes in-context learning (ICL) from fine-tuning in LLMs?",["ICL adapts model behaviour via prompt examples at inference time without updating weights; fine-tuning updates weights on new task data.","ICL and fine-tuning are identical except ICL uses a larger learning rate.","ICL requires gradient computation; fine-tuning does not.","ICL is only possible for classification tasks."],0,"Prompt-based adaptation vs weight updates.","ICL: model(prompt with k examples) -> prediction; no gradient flows; knowledge retrieved from pretraining.","Robotic manipulation systems use ICL to specify new tasks via a few demonstration descriptions."),
+  q(2034,"Foundation Models","competitive","Starter",15,"What distinguishes a vision-language-action (VLA) model from a standard vision-language model (VLM)?",["VLAs additionally output continuous or discrete robot actions; VLMs produce only text or classification outputs.","VLMs are larger than VLAs and require more compute at inference.","VLAs replace the language encoder with a proprioception encoder.","VLMs output actions implicitly through text descriptions; VLAs output them explicitly."],0,"VLA outputs actions; VLM outputs text or labels.","VLM: image + text -> text; VLA: image + text + robot state -> action vector; the action head bridges perception and control.","RT-2, Octo, and OpenVLA are VLA models trained on large robot manipulation datasets."),
+  q(2035,"Foundation Models","competitive","Starter",15,"Why is chain-of-thought (CoT) prompting effective for multi-step robot task planning?",["CoT elicits intermediate reasoning steps that decompose complex tasks into subgoals reducing error accumulation vs direct answer generation.","CoT works because longer outputs contain more information.","CoT reduces computational cost by avoiding full forward passes.","CoT is only effective for mathematical reasoning not spatial planning."],0,"Explicit intermediate steps reduce compounding errors.","Without CoT LLMs must compress multi-step reasoning into one output; step-by-step reasoning externalises working memory and catches logical errors.","SayCan and ProgPrompt use CoT-style decomposition for robot instruction following."),
+  q(2036,"Foundation Models","competitive","Research",20,"Why does catastrophic forgetting challenge fine-tuning foundation models for specific robot tasks?",["Gradient updates for the new task overwrite weights encoding previous capabilities destroying general knowledge from pretraining.","Catastrophic forgetting only affects attention layers not feedforward blocks.","Fine-tuning prevents forgetting via a lower learning rate.","Forgetting is irrelevant if the robot only needs the fine-tuned task."],0,"Weight updates for new task overwrite general knowledge.","Neural networks have no explicit memory separation; updating weights for task B degrades task A performance in proportion to gradient overlap.","LoRA, adapters, and EWC (Elastic Weight Consolidation) mitigate forgetting."),
+  q(2037,"Foundation Models","competitive","Research",20,"How does Low-Rank Adaptation (LoRA) enable parameter-efficient fine-tuning of foundation models?",["LoRA constrains weight updates to a low-rank factorisation delta_W = A*B (r << d,k) reducing trainable parameters drastically.","LoRA freezes all weights and adds a separate small network per task.","LoRA quantises weights to INT4 to reduce memory during fine-tuning.","LoRA applies gradient checkpointing to reduce memory consumption."],0,"Low-rank decomposition of weight updates.","Instead of updating full d*k weight matrix (dk params) LoRA trains A (dr) and B (rk) with r << min(d,k); typical r=4-64 reduces params 100-1000x.","RT-2 and Octo use LoRA to adapt foundation models to new robot embodiments quickly."),
+  q(2038,"Foundation Models","competitive","Research",20,"Why does tokenising robot actions in VLA models create a tension between action precision and vocabulary size?",["Finer discretisation of continuous actions requires exponentially larger vocabularies that stress the output head and increase model size.","Tokenisation improves precision because discrete tokens represent arbitrary values.","The tension only applies to joint-space actions not Cartesian actions.","Larger vocabularies always improve performance by increasing resolution."],0,"Finer discretisation requires exponentially larger vocabulary.","6-DOF actions at 0.001 rad resolution requires 10^6 tokens per DOF; coarser discretisation (256 bins) limits precision.","Diffusion policy heads and flow-matching decoders generate continuous actions to avoid this."),
+  q(2039,"Foundation Models","competitive","Research",20,"What is the cross-embodiment generalisation problem and why is it challenging?",["Different robots have different morphologies, action spaces, and sensor modalities; a model trained on one embodiment may not transfer without retraining.","Cross-embodiment generalisation is straightforward because all robots share a joint-space representation.","The problem is only about visual differences between robots.","Cross-embodiment is solved by using a universal language interface."],0,"Morphology plus action-space heterogeneity prevents direct transfer.","A policy trained on a 7-DOF arm cannot directly control a 6-DOF arm or mobile manipulator; action dimensions, ranges, and dynamics differ fundamentally.","RT-X and Open-X Embodiment datasets aggregate multi-robot data to learn transferable representations."),
+  q(2040,"Foundation Models","competitive","Research",20,"How does the emergent ability phenomenon complicate capability prediction from scaling laws?",["Emergent abilities appear discontinuously at certain scale thresholds making capability prediction from smaller models unreliable.","Emergent abilities follow smooth power-law scaling and are easy to predict.","Emergence occurs only in language tasks not in robot action generation.","Emergent abilities are artefacts of benchmark choice and disappear with better evaluation."],0,"Discontinuous capability jumps are unpredictable from smooth scaling laws.","Tasks like arithmetic suddenly appear at certain FLOP budgets; no extrapolation from smaller models predicts the threshold.","This makes it hard to predict when robot VLAs will acquire qualitatively new capabilities."),
+  q(2041,"Foundation Models","competitive","Research",20,"How does retrieval-augmented generation (RAG) benefit robot knowledge grounding?",["RAG retrieves relevant external documents at query time enabling up-to-date scene-specific knowledge without retraining the base model.","RAG is faster than pure parametric models because it reduces attention layers.","RAG eliminates hallucination entirely by grounding responses in retrieved facts.","Pure parametric models are always more accurate because they have more parameters."],0,"Dynamic retrieval enables up-to-date scene-specific grounding.","Parametric knowledge is static post-training; RAG queries a knowledge base (environment maps, task manuals) at runtime.","Robot task planners use RAG to retrieve object affordances and workspace geometry."),
+  q(2042,"Foundation Models","competitive","Research",20,"What is the world model bottleneck hypothesis and how does latent video prediction address it?",["The hypothesis states that robust robot behaviour requires internal predictions of future states; latent video models learn compact world representations that support planning.","The bottleneck hypothesis claims model size is the primary limit on performance.","Latent video prediction is used only for data augmentation not planning.","The world model bottleneck is resolved by using larger language models as planners."],0,"Planning requires future state prediction; latent video models provide it.","Without a world model robots cannot simulate action consequences; latent video models predict future observations in compressed latent space.","Dreamer-V3 and SWIM use latent world models for sample-efficient robot control."),
+  q(2043,"Foundation Models","competitive","Research",20,"Why does physical consistency of foundation model outputs matter more for robotics than language generation?",["Robot actions have real-world consequences; physically inconsistent outputs cause hardware damage or task failure unlike text errors.","Physical consistency matters equally for text and robot tasks.","Foundation models naturally produce physically consistent outputs from physics simulation training.","Physical consistency only matters for manipulation not navigation."],0,"Text errors are harmless; robot action errors cause physical consequences.","An LLM hallucinating a date is benign; a VLA outputting a joint configuration exceeding hardware limits causes damage.","Physical constraint layers, safety shields, and simulation-in-the-loop validation address this."),
+  q(2044,"Foundation Models","competitive","Research",20,"How does the concept of affordance bridge visual perception and robot action selection in embodied AI?",["Affordances represent action possibilities of objects (graspability, pushability) that directly link what the robot perceives to what actions are feasible.","Affordances are learned only from language descriptions of object properties.","Affordance models predict object positions but not required robot actions.","Affordances are equivalent to object segmentation masks in modern vision systems."],0,"Perception to action possibility mapping (Gibson ecological theory).","Affordances are relational properties between objects and the actor capabilities; VLA models that predict affordance maps before selecting actions generalise better to novel objects.","Visual affordance prediction is a key research direction in robot manipulation."),
+  q(2045,"Foundation Models","competitive","Research",20,"What is the alignment tax in RLHF-trained robot foundation models?",["Aligning to human preferences can reduce raw capability on benchmark tasks representing a capability-safety tradeoff.","The alignment tax is the computational cost of running human preference labelling.","It describes the reduction in inference speed due to safety filtering layers.","Alignment tax is the increase in model size required to support RLHF training."],0,"Alignment may degrade raw capability: capability-safety tradeoff.","InstructGPT showed slight perplexity degradation on NLP benchmarks after RLHF; similarly safe robot policies may be less capable in edge-case scenarios.","Understanding this tradeoff is critical for deploying foundation models in safety-critical robotics."),
 
-  // HARD — Underwater Robotics
-  q(91, "Underwater Robotics", "hard", "Starter", 15, "Why is localization difficult underwater?", [
-    "GPS signals do not propagate effectively underwater.",
-    "Cameras always provide perfect metric localization underwater.",
-    "Underwater vehicles have no sensor noise in practice.",
-    "Acoustic sensing removes all mapping ambiguity.",
-  ], 0, "No easy GPS underwater.", "Underwater robots rely on acoustics, inertial sensing, Doppler logs and other alternatives because GPS is unavailable underwater.", "This makes navigation harder than in many surface settings."),
-  q(92, "Underwater Robotics", "hard", "Starter", 15, "Why are acoustic sensors common in underwater robotics?", [
-    "Sound propagates much better than radio waves underwater.",
-    "Sound provides exact dense color imagery underwater.",
-    "Sound eliminates all multipath and noise underwater.",
-    "Sound gives direct absolute pose without estimation.",
-  ], 0, "Acoustic propagation.", "Acoustic sensing is widely used for communication, ranging and localization in underwater environments.", "Sonar is a core underwater sensing modality."),
-  q(93, "Underwater Robotics", "hard", "Starter", 15, "What is one major challenge for underwater vision?", [
-    "Light scattering and absorption degrade image quality.",
-    "Images underwater are always sharper than in air.",
-    "Underwater scenes remove the need for calibration.",
-    "Water guarantees constant illumination everywhere.",
-  ], 0, "Scattering matters.", "Water reduces contrast, color fidelity and visibility, making visual perception much harder.", "This affects detection, mapping and visual odometry."),
-  q(94, "Underwater Robotics", "hard", "Starter", 15, "Why is buoyancy important for underwater vehicles?", [
-    "It affects vertical equilibrium and energy needed for depth control.",
-    "It only affects sensor latency and not motion.",
-    "It removes the need for thrusters entirely.",
-    "It determines acoustic bandwidth more than force balance.",
-  ], 0, "Force balance in water.", "Buoyancy interacts with gravity and vehicle design, strongly influencing depth regulation and stability.", "Neutral buoyancy is often desirable."),
-  q(95, "Underwater Robotics", "hard", "Starter", 15, "Why is drag especially significant underwater?", [
-    "Fluid forces are substantial and strongly affect motion and control.",
-    "Drag is negligible underwater compared with aerial vehicles.",
-    "Drag only affects sensors and not thruster-driven dynamics.",
-    "Drag disappears once the vehicle is neutrally buoyant.",
-  ], 0, "Hydrodynamics matter.", "Water is much denser than air, so drag and added-mass effects are central to underwater vehicle modeling.", "Controllers must account for these effects."),
-  q(96, "Underwater Robotics", "hard", "Research", 20, "Why is underwater SLAM an active research area?", [
-    "Vehicles must localize with noisy, sparse and environment-dependent sensing in GPS-denied conditions.",
-    "Underwater vehicles already have perfect global localization from acoustics alone.",
-    "Mapping is trivial underwater because scenes are static and fully observable.",
-    "SLAM is unnecessary once a depth sensor is installed.",
-  ], 0, "GPS-denied mapping.", "Recent underwater robotics literature emphasizes SLAM because sensing is difficult, observability is limited and drift accumulates quickly.", "Sonar- and vision-based SLAM remain important topics."),
-  q(97, "Underwater Robotics", "hard", "Research", 20, "Why are sonar-based representations important in underwater papers?", [
-    "Sonar can perceive where optical sensing is unreliable or visibility is poor.",
-    "Sonar directly provides semantic language labels for objects.",
-    "Sonar eliminates the need for all motion models in navigation.",
-    "Sonar makes water scattering irrelevant to all sensors.",
-  ], 0, "Perception in low-visibility water.", "Sonar is crucial when optical conditions are poor and is a major focus of underwater mapping and localization work.", "Different sonar modalities lead to different representation challenges."),
-  q(98, "Underwater Robotics", "hard", "Research", 20, "Why is multi-sensor fusion particularly valuable underwater?", [
-    "No single underwater sensor is reliable enough across all conditions.",
-    "Every underwater sensor provides the same failure-free information.",
-    "Fusion removes the need for vehicle dynamics models completely.",
-    "Fusion guarantees loop closure at every timestep.",
-  ], 0, "Complementary sensing.", "Research systems often fuse IMU, depth, DVL, sonar and vision because each sensor has major limitations.", "Robust navigation depends on combining them effectively."),
-  q(99, "Underwater Robotics", "hard", "Research", 20, "Why are terrain-relative navigation methods studied underwater?", [
-    "They use environmental structure to bound drift when global references are unavailable.",
-    "They replace all onboard sensing with precomputed maps automatically.",
-    "They only work when GPS is stronger underwater than in air.",
-    "They eliminate the need for uncertainty modeling.",
-  ], 0, "Use the environment as reference.", "Terrain-relative navigation is useful because consistent seabed structure can help correct drift without global positioning.", "It appears in AUV research for long missions."),
-  q(100, "Underwater Robotics", "hard", "Research", 20, "Why is adaptive control studied in underwater robot research?", [
-    "Hydrodynamic parameters and disturbances can vary significantly across operating conditions.",
-    "Underwater dynamics are perfectly constant across all vehicles and speeds.",
-    "Adaptive control removes the need for localization and mapping.",
-    "Adaptive control guarantees exact modeling of turbulence.",
-  ], 0, "Changing water conditions.", "Research explores adaptive and robust control because underwater environments introduce uncertain dynamics and disturbances.", "Current, drag and loading can vary over a mission."),
+  // ── COMPETITIVE: Aerial Robotics ──────────────────────────────────────────
+  q(2046,"Aerial Robotics","competitive","Starter",15,"Why is a quadrotor considered underactuated and what motion coupling results?",["It has 4 inputs controlling 6 DOF; thrust is always body-z aligned coupling lateral motion to attitude changes.","Underactuation means the quadrotor has fewer motors than propellers.","All multirotors are fully actuated because they can hover at any orientation.","Underactuation decouples yaw from altitude control."],0,"4 inputs for 6 DOF; thrust direction couples attitude and translation.","The quadrotor cannot accelerate laterally without first tilting; position control is achieved via an inner attitude loop.","Tilt-rotor and omnidirectional multirotors address underactuation with additional actuation."),
+  q(2047,"Aerial Robotics","competitive","Starter",15,"What is differential flatness of a quadrotor and how does it simplify trajectory generation?",["A quadrotor is differentially flat with outputs [x,y,z,psi]; any smooth trajectory in this 4D space uniquely determines all states and inputs without integrating ODEs.","Differential flatness means the quadrotor can fly any trajectory without attitude changes.","It implies the quadrotor dynamics are linear and time-invariant.","Differential flatness is a property only of fixed-wing aircraft."],0,"Flat outputs determine full state and inputs algebraically.","Given x(t), x_dot(t), x_ddot(t), and psi(t), all states and inputs can be computed algebraically; planning in flat space avoids dynamics simulation.","Minimum-snap trajectory generation exploits flatness for smooth dynamically feasible paths."),
+  q(2048,"Aerial Robotics","competitive","Starter",15,"Why is the cascaded control architecture standard for multirotor UAVs?",["It exploits timescale separation: inner loops (fast attitude) stabilise before outer loops (slow position) issue new references.","The cascade guarantees optimal control by decomposing the nonlinear problem into linear subproblems.","It minimises the number of sensors needed for stable flight.","The cascaded structure is required only for fixed-wing aircraft."],0,"Timescale separation enables stable nested loops.","Attitude dynamics (omega_n ~ 10-30 Hz) are faster than position dynamics (omega_n ~ 1-5 Hz); the inner loop is effectively static for the outer loop.","This architecture is implemented in PX4, ArduPilot, and Betaflight."),
+  q(2049,"Aerial Robotics","competitive","Starter",15,"What is the ground effect in UAV flight and how does it affect controller performance near landing?",["Ground effect increases rotor efficiency via air recirculation as the UAV approaches a surface causing unexpected lift increase.","Ground effect refers to electromagnetic interference from ground-based electronics.","Ground effect causes rotors to stall completely below 1 m altitude.","Ground effect decreases drag near the ground requiring more thrust."],0,"Air recirculation near surface unexpectedly increases thrust.","The boundary between ground effect and free-air hover creates a nonlinear thrust-altitude relationship not captured by standard hover controllers.","Landing controllers must account for the ground effect altitude-thrust coupling."),
+  q(2050,"Aerial Robotics","competitive","Starter",15,"What is motor mixing in a multirotor autopilot?",["Mapping desired thrust and body torques into individual rotor commands according to frame geometry.","Mapping camera images into rotor-efficiency estimates.","Mapping battery temperature into GPS corrections.","Mapping altitude setpoints into sensor covariance matrices."],0,"Control allocation: desired wrench to individual rotor commands.","Motor mixing converts collective and attitude demands into motor-level signals based on the rotor arrangement and spin directions.","Every multirotor controller uses a motor mixing strategy."),
+  q(2051,"Aerial Robotics","competitive","Research",20,"How does minimum-snap trajectory optimisation guarantee dynamically feasible quadrotor trajectories?",["By leveraging differential flatness it minimises the 4th derivative (snap) of flat outputs as a surrogate for input cost; results are directly feasible without dynamics integration.","Minimum-snap minimises thrust by constraining the trajectory to constant altitude.","Feasibility is guaranteed by adding collision avoidance constraints to the QP.","Minimum-snap generates trajectories in joint space and converts to Cartesian via FK."],0,"Flatness plus snap minimisation leads to feasible polynomial trajectories.","The trajectory is piecewise polynomial in flat outputs; minimising the integral of snap squared ensures thrust and torques are bounded.","Mellinger and Kumar (2011) introduced this formulation; it remains standard in UAV planning."),
+  q(2052,"Aerial Robotics","competitive","Research",20,"Why do aggressive maneuvers like flips require nonlinear geometric controllers rather than cascaded PID?",["Cascaded PID relies on timescale separation which breaks down during large-attitude maneuvers where attitude and position dynamics are tightly coupled.","Aggressive maneuvers require more PID terms not a different architecture.","Cascaded PID is capable of any maneuver with sufficiently high gains.","Nonlinear controllers are only needed for hover not aggressive flight."],0,"Large-angle maneuvers violate timescale separation.","During a full flip the quadrotor operates far from hover equilibrium; the linearisation assumed by cascaded PID is invalid and attitude changes on the same timescale as position.","Geometric controllers on SE(3) handle arbitrary attitudes without singularities."),
+  q(2053,"Aerial Robotics","competitive","Research",20,"How does the geometric attitude controller on SO(3) avoid singularities present in Euler-angle controllers?",["It defines errors directly on the rotation manifold using the Lie algebra (rotation matrix logarithm) avoiding gimbal lock and Euler singularities.","Geometric controllers use Euler angles in a different sequence.","SO(3) controllers avoid singularities by limiting roll to +/-90 degrees.","Geometric controllers eliminate attitude tracking by working only in position space."],0,"Errors on SO(3) manifold are globally defined without singularities.","Error rotation: R_e = R_d^T * R; angular velocity error: omega_e = omega - R^T * R_d * omega_d; defined for all R in SO(3) without coordinate singularities.","Lee Leok McClamroch (2010) geometric controller is standard for agile UAV research."),
+  q(2054,"Aerial Robotics","competitive","Research",20,"How does optical flow time-to-collision (tau) enable bio-inspired obstacle avoidance without depth estimation?",["tau = 1/(s_dot/s) directly gives time to contact from radial optical flow allowing avoidance without computing absolute depth.","tau requires stereo depth; optical flow alone is insufficient.","tau is computed from the gyroscope not the camera.","tau gives distance to obstacles not time to collision."],0,"Divergence of radial flow equals inverse time-to-contact.","s is angular size, s_dot its rate; tau = s/s_dot; bees and UAVs can react to tau thresholds without knowing absolute distances.","Event cameras enable sub-millisecond tau computation for high-speed obstacle avoidance."),
+  q(2055,"Aerial Robotics","competitive","Research",20,"Why does L1 adaptive control provide robustness guarantees for UAV systems?",["L1 uses a fast adaptation law to estimate and cancel matched uncertainties within a bandwidth defined by a low-pass filter providing bounded tracking error.","L1 adaptive control learns a PID gain schedule offline and applies it online.","It provides robustness by increasing integral gain during disturbances.","L1 control guarantees stability only for linear time-invariant UAV models."],0,"Fast adaptation plus low-pass filter leads to bounded tracking with stability.","L1 separates adaptation (fast) from control (filtered) avoiding the tradeoff between adaptation speed and stability present in MRAC.","L1 adaptive control has been flight-tested for fixed-wing and quadrotor uncertainty rejection."),
+  q(2056,"Aerial Robotics","competitive","Research",20,"What advantage do event cameras provide for high-speed aerial robotics research?",["They offer high temporal resolution and large dynamic range reacting to brightness changes with very low latency suited for fast flight.","They provide dense absolute depth at every pixel natively.","They remove the need for inertial sensing during aggressive maneuvers.","They guarantee perfect scene semantics at all frame rates."],0,"Asynchronous low-latency brightness change detection.","Event cameras output microsecond-timestamped events rather than frames capturing fast motion without motion blur or synchronisation delay.","They appear prominently in agile-flight research for state estimation and obstacle avoidance."),
+  q(2057,"Aerial Robotics","competitive","Research",20,"Why is nonlinear MPC common in advanced UAV research papers?",["It handles vehicle nonlinearities and constraints more explicitly than simple linear controllers designed for hover equilibrium.","It removes the need for any state estimate or model.","It guarantees zero computation time on embedded hardware.","It turns every underactuated UAV into a fully actuated system."],0,"Nonlinear dynamics plus constraints go beyond the hover linearisation.","Aggressive flight and obstacle-rich motion require planners/controllers that reason with nonlinear dynamics directly rather than a hover-point linear approximation.","Research UAV stacks frequently use nonlinear MPC for constraint-aware trajectory tracking."),
+  q(2058,"Aerial Robotics","competitive","Research",20,"What limits ICP-based LiDAR odometry without a good initialisation?",["Without a close initial guess ICP converges to a local minimum with incorrect correspondences producing large pose error or divergence.","ICP always converges to the global minimum regardless of initialisation.","ICP requires initialisation only for 2D scans; 3D ICP is globally convergent.","Without initialisation ICP takes more iterations but converges to the same result."],0,"Non-convex correspondence cost leads to local minima without close init.","ICP alternates between nearest-neighbour correspondences and minimising their distance; distant initialisations cause incorrect correspondences trapping the algorithm.","NDT and GICP are more robust alternatives used in UAV SLAM."),
+  q(2059,"Aerial Robotics","competitive","Research",20,"How does neural inertial navigation reduce drift compared to classical dead-reckoning?",["Neural networks predict velocity or position directly from raw IMU windows implicitly compensating for sensor biases and integration drift learned from training trajectories.","Neural inertial navigation replaces the IMU with a camera for better accuracy.","It integrates accelerometer data with higher precision via double-precision arithmetic.","Neural inertial navigation is identical to classical dead-reckoning but runs on a GPU."],0,"Learned bias compensation reduces integration drift.","Classical integration: p = double_integral(a*dt^2); bias errors grow as t^2. Neural networks predict delta_p directly from IMU windows learning to cancel bias patterns.","TLIO, RONIN, and AirIMU significantly reduce drift in GPS-denied UAV navigation."),
+  q(2060,"Aerial Robotics","competitive","Research",20,"How does perception-aware planning improve state estimation performance in UAV research?",["By choosing trajectories that improve visual observability feature quality and state-estimation accuracy rather than ignoring sensing effects.","Control actions are always independent of sensing quality in flight.","Perception-aware planning means removing dynamics from the planner.","Perception-aware planning only matters when GPS is perfect."],0,"Motion choices affect sensing quality and therefore estimation accuracy.","The chosen path can improve or degrade visual observability and feature quality; perception-aware planners explicitly account for this coupling.","This coupling between control and perception is a major UAV research topic."),
 
-  // HARD — Autonomous Driving
-  q(101, "Autonomous Driving", "hard", "Starter", 15, "What is the role of perception in autonomous driving?", [
-    "Estimating scene structure, agents, lanes and obstacles from sensor data.",
-    "Estimating only wheel torques without scene understanding.",
-    "Estimating only battery temperature without sensor fusion.",
-    "Estimating only steering control without map context.",
-  ], 0, "Scene understanding.", "Perception builds the machine's understanding of the environment so planning and control can act safely.", "Detectors, segmentation and tracking are common perception tasks."),
-  q(102, "Autonomous Driving", "hard", "Starter", 15, "Why is prediction important in autonomous driving?", [
-    "Other agents move, so the vehicle must anticipate future interactions.",
-    "The road scene is always static, so anticipation is unnecessary.",
-    "Prediction only matters after the control command is executed.",
-    "Prediction replaces localization and mapping entirely.",
-  ], 0, "Dynamic traffic.", "Driving requires reasoning about pedestrians, vehicles and cyclists whose future motion affects safe decisions.", "Prediction supports planning in interactive environments."),
-  q(103, "Autonomous Driving", "hard", "Starter", 15, "What is motion planning in autonomous driving?", [
-    "Choosing a feasible and safe future trajectory for the vehicle.",
-    "Choosing a future neural architecture for perception.",
-    "Choosing only the next camera exposure setting.",
-    "Choosing only the next steering-angle sensor reading.",
-  ], 0, "Future path selection.", "Planning selects vehicle behavior subject to safety, comfort, road rules and dynamic feasibility.", "This sits between perception/prediction and low-level control."),
-  q(104, "Autonomous Driving", "hard", "Starter", 15, "Why is sensor fusion widely used in self-driving systems?", [
-    "Different sensors provide complementary strengths and failure modes.",
-    "A single sensor already dominates all conditions perfectly.",
-    "Fusion removes the need for state estimation or calibration.",
-    "Fusion guarantees zero-latency decisions in every case.",
-  ], 0, "Complementary sensing again.", "Cameras, lidar, radar, GNSS and IMU offer different advantages, so fusion improves robustness.", "No single sensor is reliable everywhere."),
-  q(105, "Autonomous Driving", "hard", "Starter", 15, "Why is safety validation hard in autonomous driving?", [
-    "Rare edge cases and long-tail events are difficult to cover exhaustively.",
-    "Traffic scenarios are simple and perfectly repetitive in practice.",
-    "Validation needs only a few short closed-course tests.",
-    "Simulation automatically proves correctness in all conditions.",
-  ], 0, "Long tail.", "Driving systems must handle a vast distribution of scenarios, many of which are rare but safety-critical.", "Validation therefore becomes a major systems challenge."),
-  q(106, "Autonomous Driving", "hard", "Research", 20, "Why are occupancy-based scene representations important in modern autonomous-driving research?", [
-    "They model free space and occupied volume more directly than object lists alone.",
-    "They eliminate the need for perception and prediction entirely.",
-    "They are only useful for static indoor mobile robots.",
-    "They replace control with a single image-classification step.",
-  ], 0, "Scene geometry beyond boxes.", "Recent driving research increasingly studies occupancy representations because they capture scene structure more flexibly than discrete detections alone.", "This trend appears in recent driving papers and challenges."),
-  q(107, "Autonomous Driving", "hard", "Research", 20, "Why is end-to-end driving a major research topic?", [
-    "It aims to learn planning behavior directly from sensor inputs without fully hand-designed modular pipelines.",
-    "It removes the need for any training data because driving is deterministic.",
-    "It guarantees interpretability better than every modular system.",
-    "It means the vehicle no longer needs control outputs.",
-  ], 0, "Sensor-to-plan learning.", "End-to-end driving is studied because modular pipelines can suffer from compounding interface errors and heavy supervision needs.", "Recent tutorials and papers highlight both its promise and challenges."),
-  q(108, "Autonomous Driving", "hard", "Research", 20, "Why are world-model ideas appearing in autonomous-driving papers?", [
-    "Latent predictive models may support planning and closed-loop reasoning about future traffic evolution.",
-    "World models eliminate the need for sensor input at deployment.",
-    "World models are identical to static map storage only.",
-    "World models guarantee certification-ready safety automatically.",
-  ], 0, "Predict future scenarios.", "Recent work studies latent world models because planning under uncertainty benefits from learned predictive structure.", "This is now a visible theme in modern driving research."),
-  q(109, "Autonomous Driving", "hard", "Research", 20, "Why are diffusion-based action models being explored for driving?", [
-    "They can represent multimodal future behaviors and planning outputs.",
-    "They remove the need for real-time inference entirely.",
-    "They only apply to image denoising and not decision making.",
-    "They force the planner to output one deterministic behavior always.",
-  ], 0, "Multiple valid futures.", "Driving often has several reasonable actions, and diffusion-style generative models can capture multimodal decision distributions.", "Recent CV and driving papers explore this direction."),
-  q(110, "Autonomous Driving", "hard", "Research", 20, "Why is closed-loop evaluation emphasized in autonomous-driving research?", [
-    "Open-loop perception metrics alone do not capture full decision-feedback interaction quality.",
-    "Open-loop perception metrics fully determine safety and planning quality.",
-    "Closed-loop evaluation removes the need for simulation or benchmarks.",
-    "Closed-loop evaluation only matters for low-speed parking tasks.",
-  ], 0, "Behavior affects future observations.", "Driving is an interactive sequential control problem, so evaluating the feedback loop is essential.", "Modern driving challenges increasingly emphasize closed-loop assessment."),
+  // ── COMPETITIVE: Underwater Robotics ──────────────────────────────────────
+  q(2061,"Underwater Robotics","competitive","Starter",15,"Why do Doppler Velocity Logs (DVL) serve as the primary velocity reference for AUVs?",["DVL measures velocity relative to the seafloor via Doppler shift of acoustic beams providing bounded velocity error; IMU integration accumulates unbounded drift.","DVL is preferred for higher sampling rates than IMU.","DVL measures acceleration directly and is integrated like an IMU.","DVL is used only when GPS is available to correct its readings."],0,"Bounded DVL velocity vs unbounded IMU drift.","DVL Doppler measurement error is bounded by beam geometry and acoustic noise; double-integrating IMU acceleration has drift growing as t^2.","AUV nav filters fuse DVL velocity with IMU attitude for accurate dead-reckoning."),
+  q(2062,"Underwater Robotics","competitive","Starter",15,"What is long baseline (LBL) acoustic positioning and why does it achieve higher accuracy than USBL?",["LBL triangulates position from multiple seabed transponders; the long baseline provides better geometric dilution of precision than USBL single transducer.","LBL uses a single transducer on the surface; USBL uses multiple seabed nodes.","USBL always achieves higher accuracy because it uses phase measurements.","LBL and USBL provide identical accuracy."],0,"Multiple transponders lead to better geometry (lower GDOP).","USBL: single head gives bearing + range from ship; accuracy degrades with depth. LBL: 3+ seabed transponders triangulate; accuracy is range-independent.","Scientific AUV surveys use LBL for cm-level positioning."),
+  q(2063,"Underwater Robotics","competitive","Starter",15,"What makes acoustic multipath propagation degrade underwater communication and ranging?",["Sound reflects off the seabed surface and thermal layers arriving via multiple paths with different delays causing inter-symbol interference and range ambiguity.","Multipath improves range accuracy by averaging multiple arrivals.","Multipath only occurs in shallow water and disappears below 100 m.","Multipath affects optics but not acoustics underwater."],0,"Multiple reflections create delay spread and ISI.","Each reflected path adds a delayed copy of the signal; in ranging ghost echoes bias the range estimate.","OFDM underwater modems and matched-filter equalizers mitigate multipath."),
+  q(2064,"Underwater Robotics","competitive","Starter",15,"Why is drag especially significant in underwater robot dynamics?",["Water is much denser than air so drag and added-mass effects are central to underwater vehicle modelling.","Drag is negligible underwater compared with aerial vehicles.","Drag only affects sensors not thruster-driven dynamics.","Drag disappears once the vehicle is neutrally buoyant."],0,"High fluid density makes drag dominant.","AUV dynamics: M_RB*x_ddot + M_A*x_r_ddot + D(x_r_dot)*x_r_dot = tau; M_A is added mass and D is drag -- both absent in aerial models.","Controllers must account for these hydrodynamic effects for accurate trajectory tracking."),
+  q(2065,"Underwater Robotics","competitive","Starter",15,"What is one major challenge for underwater vision and how does it affect robot perception?",["Light scattering and absorption degrade image quality reducing contrast colour fidelity and visibility.","Images underwater are always sharper than in air.","Underwater scenes remove the need for calibration.","Water guarantees constant illumination everywhere."],0,"Scattering and absorption degrade optical sensing.","Red channel attenuation backscatter and limited visibility make visual perception much harder.","This affects detection mapping and visual odometry algorithms."),
+  q(2066,"Underwater Robotics","competitive","Research",20,"Why does terrain-relative navigation (TRN) provide better long-duration AUV accuracy than pure dead-reckoning?",["TRN correlates onboard sonar maps with pre-stored bathymetric databases providing absolute position corrections that bound navigation error regardless of mission duration.","TRN uses GPS corrections every hour to reset DVL drift.","TRN works only in shallow water where sonar resolution is high.","TRN replaces the DVL entirely."],0,"Absolute map-matching corrections bound dead-reckoning drift over time.","Dead-reckoning drift grows over time; TRN matches current depth/altitude maps to precomputed charts providing absolute position fixes that reset the integrated error.","MBARI SLAM-based TRN enables AUVs to resurvey exact previous tracks without GPS."),
+  q(2067,"Underwater Robotics","competitive","Research",20,"Why is the underwater acoustic channel fundamentally limited in bandwidth compared to RF communication?",["Sound speed ~1500 m/s causes severe Doppler for moving AUVs and bandwidth is limited to a few kHz vs GHz for RF.","The underwater channel supports higher bandwidth because water is denser.","Acoustic underwater communication is unaffected by Doppler because sound travels slowly.","The main challenge is attenuation; bandwidth and Doppler are not significant."],0,"Low sound speed causes severe Doppler; limited bandwidth vs RF.","Carrier frequency ~10 kHz limits bandwidth to ~5 kHz; 1 m/s AUV motion causes 6 Hz Doppler shift significant at these carrier frequencies.","MIMO-OFDM and Doppler-compensation equalizers address these challenges."),
+  q(2068,"Underwater Robotics","competitive","Research",20,"How does the Seaglider AUV buoyancy-driven propulsion achieve superior energy efficiency?",["Buoyancy engines control density by pumping oil; gliding at low speed requires only energy to pump oil not to overcome drag at high propulsive power.","Buoyancy propulsion is more efficient because it uses lighter batteries.","Thruster AUVs are more efficient at low speed; gliders only at high speed.","Buoyancy propulsion avoids drag entirely."],0,"Low-speed glide: P proportional to v^3; oil pump energy is minimal.","Thruster propulsion P proportional to v^3; at low speed propulsive power is tiny; the energy cost is dominated by pumping the buoyancy oil enabling months-long missions.","Seaglider endurance: >1 year; thruster AUV: hours to days."),
+  q(2069,"Underwater Robotics","competitive","Research",20,"Why is underwater SLAM still an active research area?",["Vehicles must localise with noisy sparse environment-dependent sensing in GPS-denied conditions where standard methods degrade rapidly.","Underwater vehicles already have perfect global localisation from acoustics.","Mapping is trivial underwater because scenes are static.","SLAM is unnecessary once a depth sensor is installed."],0,"GPS-denied plus noisy sparse sensing plus drift create ongoing research challenges.","Recent underwater SLAM literature emphasises that sensing is difficult observability is limited and drift accumulates quickly.","Sonar- and vision-based SLAM remain important active research topics."),
+  q(2070,"Underwater Robotics","competitive","Research",20,"How does MPPI control offer advantages for AUV trajectory optimisation in dynamic ocean currents?",["MPPI uses parallel GPU sampling of many trajectory rollouts to approximate optimal control without gradient computation handling non-smooth current disturbances.","MPPI is preferred because it requires fewer samples than other sampling methods.","MPPI provides global optimality guarantees for nonlinear AUV dynamics.","MPPI replaces the AUV dynamic model with a neural network."],0,"Gradient-free GPU-parallel sampling handles non-smooth disturbances.","Ocean current fields are non-differentiable and stochastic; MPPI samples K trajectories in parallel evaluates costs and computes a weighted control update.","MPPI enables real-time AUV replanning in turbulent shallow-water currents."),
+  q(2071,"Underwater Robotics","competitive","Research",20,"What limits the spatial resolution of underwater acoustic cameras compared to optical cameras?",["Acoustic wavelength at typical frequencies (100 kHz to 1 MHz) is mm-cm scale limiting diffraction resolution vs micron scale for optical wavelengths.","Acoustic cameras achieve higher resolution than optical cameras at all depths.","Resolution is limited only by transducer array size not acoustic wavelength.","Acoustic cameras cannot form 2D images."],0,"lambda = v/f limits diffraction: acoustic lambda >> optical lambda.","At 1 MHz lambda = 1.5 mm; diffraction limit approximately lambda*R/D; for R=2m, D=0.1m limit is approximately 30 mm vs microns for optical.","Acoustic cameras (BlueView) are used for close-range inspection where optical visibility fails."),
+  q(2072,"Underwater Robotics","competitive","Research",20,"How does cooperative AUV localisation improve accuracy beyond single-AUV dead-reckoning?",["Peer-to-peer acoustic ranging between AUVs creates inter-vehicle constraints that reduce collective positioning uncertainty similar to GPS triangulation.","Cooperative localisation improves speed but not accuracy.","Cooperation requires all AUVs to surface simultaneously for GPS updates.","Cooperative localisation only works if all AUVs start from the same known position."],0,"Inter-AUV range constraints reduce collective positioning uncertainty.","Each AUV position uncertainty contributes to others via acoustic ranging; with sufficient geometric diversity the collective uncertainty is lower than any individual estimate.","REMUS vehicles use cooperative acoustic positioning during coordinated surveys."),
+  q(2073,"Underwater Robotics","competitive","Research",20,"What makes underwater visual odometry more challenging than aerial or ground visual odometry?",["Backscatter limited visibility colour absorption lack of texture and dynamic marine life degrade standard VO pipelines without specialised preprocessing.","Underwater VO is easier because the robot moves slowly and features are stable.","The main challenge is computational; underwater cameras have lower resolution.","Underwater VO is identical to ground VO because water is optically similar to air."],0,"Backscatter plus colour shift plus low texture plus dynamic scene degrade standard VO.","Red channel exponential attenuation backscatter and low feature density all degrade standard VO algorithms.","WaterSLAM and SeaThru use physics-based image formation models for underwater reconstruction."),
+  q(2074,"Underwater Robotics","competitive","Research",20,"Why does the constant-velocity model fail for AUV dynamics in ocean currents?",["The constant-velocity model ignores hydrodynamic forces and currents; a 6-DOF maneuvering model (SNAME) with added mass drag and current terms provides accurate prediction.","The constant-velocity model fails only in turbulent shallow water.","It fails because AUVs always move at non-constant speed.","A simpler single-integrator model is preferred for real-time prediction."],0,"6-DOF maneuvering model with hydrodynamics and current terms needed.","AUV dynamics: M_RB*x_ddot + M_A*x_r_ddot + D(x_r_dot)*x_r_dot + g(eta) = tau + tau_c (current); added mass M_A and drag D significantly affect trajectory prediction.","System identification experiments in calm water estimate M_A and D for mission planning."),
+  q(2075,"Underwater Robotics","competitive","Research",20,"How does multi-sensor fusion address the limitations of individual sensors for underwater AUV navigation?",["No single underwater sensor is reliable enough across all conditions; fusing IMU DVL depth sonar and vision provides complementary information and failure coverage.","Every underwater sensor provides the same failure-free information.","Fusion removes the need for vehicle dynamics models.","Fusion guarantees loop closure at every timestep."],0,"Complementary sensing: each modality covers others failure modes.","IMU: high rate but drifts; DVL: bounded velocity but fails near boundaries; sonar: good range but limited resolution; fusion combines strengths.","Robust AUV navigation depends on tightly coupled multi-sensor fusion."),
+
+// ── COMPETITIVE: Autonomous Driving ───────────────────────────────────────
+  q(2076,"Autonomous Driving","competitive","Starter",15,"What information does an HD map contain beyond a standard road map?",["Centimetre-level lane geometry road markings signs traffic light positions and semantic attributes used for precise localisation and path planning.","Standard maps stored in higher resolution images.","Only GPS coordinates of road intersections.","Real-time sensor data generated by the vehicle."],0,"Centimetre-level semantic geometry for localisation and planning.","Standard maps: road network topology. HD maps: lane-level geometry (polylines) sign semantics surface type speed limits -- used to localise to within 10 cm.","Waymo Cruise and Mobileye maintain proprietary HD maps of operational domains."),
+  q(2077,"Autonomous Driving","competitive","Starter",15,"What is the bicycle model and why is it used in autonomous vehicle planning?",["The bicycle model approximates a 4-wheel vehicle as 2-wheel (front/rear axle) relating steering angle to curvature for efficient path planning.","The bicycle model describes only two-wheeled vehicles; cars use a unicycle model.","The bicycle model includes tyre slip dynamics for high-speed planning.","It is used only for computing braking distances not turning trajectories."],0,"2-wheel kinematic approximation: kappa = tan(delta)/L.","Curvature kappa = tan(delta)/L (wheelbase L steering angle delta); the bicycle model enables efficient trajectory planning and controller synthesis at low speed.","High-speed planning uses dynamic Pacejka tyre models that include slip effects."),
+  q(2078,"Autonomous Driving","competitive","Starter",15,"Why is sensor fusion widely used in self-driving systems?",["Different sensors provide complementary strengths and failure modes; fusion improves robustness.","A single sensor already dominates all conditions perfectly.","Fusion removes the need for state estimation or calibration.","Fusion guarantees zero-latency decisions in every case."],0,"Complementary sensing: cameras LiDAR radar IMU each cover others weaknesses.","Cameras excel at semantics; LiDAR at geometry; radar at velocity and adverse weather; GNSS at global position; IMU at high-rate attitude.","No single sensor is reliable everywhere; fusion is essential for robust AV operation."),
+  q(2079,"Autonomous Driving","competitive","Starter",15,"Why is safety validation fundamentally hard in autonomous driving?",["Rare edge cases and long-tail events cannot be exhaustively covered in testing.","Traffic scenarios are simple and perfectly repetitive in practice.","Validation needs only a few short closed-course tests.","Simulation automatically proves correctness in all conditions."],0,"The long tail of rare safety-critical scenarios cannot be exhaustively tested.","Driving systems must handle a vast distribution of scenarios; many rare events are safety-critical but statistically unlikely.","Scenario generation simulation and formal methods are used to address the validation challenge."),
+  q(2080,"Autonomous Driving","competitive","Starter",15,"What is the key insight of the Frenet frame representation for autonomous driving trajectory planning?",["It decouples longitudinal progress (s) along a reference path from lateral deviation (d) reducing 2D planning to two 1D problems.","Frenet coordinates are identical to Cartesian with a rotation.","The Frenet frame only applies to straight road segments.","Frenet coordinates eliminate the need for a reference path."],0,"s-d decomposition decouples longitudinal and lateral planning.","In Frenet: s = arc length along reference d = lateral offset; lane change and speed control decompose naturally into independent 1D optimisations.","Most industry trajectory planners use Frenet-based parameterisations."),
+  q(2081,"Autonomous Driving","competitive","Research",20,"Why does distributional shift remain the fundamental unsolved challenge for autonomous driving perception?",["The long tail of rare scenarios cannot be exhaustively covered in training data causing perception failures in novel conditions.","Distributional shift is solved by training on large enough datasets.","Perception failures are primarily caused by hardware faults not distributional shift.","Larger models always generalise better."],0,"Infinite long-tail scenarios cannot be exhaustively collected.","The training distribution D_train != D_deploy for all rare events; neural perception models have no mechanism to flag out-of-distribution inputs without explicit uncertainty estimation.","Uncertainty quantification active learning and synthetic data generation address this partially."),
+  q(2082,"Autonomous Driving","competitive","Research",20,"How does BEV (bird-eye view) feature transformation improve 3D object detection?",["BEV transforms perspective features to a top-down metric grid providing a consistent geometric representation for detection and tracking.","BEV detection eliminates depth estimation.","BEV features are perspective features rotated 90 degrees.","BEV transformation requires LiDAR; cameras alone cannot produce BEV."],0,"Metric top-down grid unifies geometry for 3D detection.","Perspective images encode depth implicitly; BEV transformation (LSS depth distribution BEVFormer cross-attention) lifts features to 3D and projects down.","BEVFusion BEVFormer and VectorMapNet all operate in BEV space."),
+  q(2083,"Autonomous Driving","competitive","Research",20,"What is the behavioural cloning covariate shift problem and how does DAgger address it?",["At deployment the learner encounters novel states caused by its own errors; DAgger queries the expert on states visited by the learner policy iteratively covering them.","Covariate shift means the input distribution shifts due to different camera exposure at test time.","DAgger addresses shift by augmenting training data with random noise perturbations.","Behavioural cloning has no covariate shift if demonstrations are diverse enough."],0,"Learner visits novel states; DAgger iteratively collects data at learner states.","BC trains on D_expert; at test learner deviates to novel states causing compounding errors. DAgger: D_{i+1} = D_i union {(s_learner, a_expert)}.","NVIDIA DAVE and recent end-to-end driving systems use DAgger-inspired online learning."),
+  q(2084,"Autonomous Driving","competitive","Research",20,"Why do Transformer-based motion prediction models capture scene context better than LSTM-based approaches?",["Transformers model multi-agent interactions via self-attention across all agents simultaneously; LSTMs encode each agent independently.","Transformer models are preferred only because they are larger.","LSTMs capture longer temporal context; Transformers only model spatial context.","Transformers predict deterministic trajectories; LSTMs predict multimodal distributions."],0,"Global self-attention captures all pairwise agent interactions simultaneously.","LSTM prediction: encode each agent history -> decode future; Transformer: cross-attend between all agents map polylines and history -> joint conditional multimodal prediction.","MTR achieves state-of-the-art on Waymo Open Motion Dataset."),
+  q(2085,"Autonomous Driving","competitive","Research",20,"What is the fundamental limitation of the predict-then-plan paradigm in dense interactive traffic?",["Prediction is performed independently of the ego vehicle planned actions missing the reactive coupling where other agents respond to ego behaviour.","The paradigm is limited only by prediction model accuracy.","Prediction before planning is always suboptimal because planning can improve prediction.","The limitation is computational: joint prediction and planning is intractable."],0,"Prediction ignores ego-agent interaction; reactive coupling is missing.","If ego plans to brake other vehicles react differently than if it accelerates; predict-then-plan assumes fixed agent trajectories regardless of ego behaviour.","Conditional prediction and game-theoretic planning (MPDM DiMA) address this coupling."),
+  q(2086,"Autonomous Driving","competitive","Research",20,"How does the occupancy network representation outperform object-list detectors for handling unknown obstacle classes?",["Occupancy networks model free/occupied space without class hypotheses handling any obstacle including out-of-class objects not in the training set.","Occupancy networks are computationally cheaper for all scenarios.","Object lists outperform occupancy networks when object count is large.","Occupancy networks require LiDAR; object lists work with cameras only."],0,"Geometry without class hypothesis handles unknown objects.","A fallen tree trunk or unknown construction barrier is not detected by a class-specific detector; occupancy marks it as occupied space regardless.","Tesla occupancy network and Waymo 3D occupancy predictions are state-of-the-art."),
+  q(2087,"Autonomous Driving","competitive","Research",20,"Why do contingency planning approaches improve safety in interactive driving scenarios?",["Contingency planners simultaneously optimise trajectories for different agent behaviour hypotheses maintaining feasible fallbacks for each mode.","Contingency planning is slower and provides no safety benefit.","Single-trajectory planners already account for uncertainty via safety margins.","Contingency planning is equivalent to planning with worst-case trajectories."],0,"Multiple hypothesis trees give feasible fallbacks for each agent mode.","If another vehicle has 70% probability of yielding and 30% of not a contingency planner maintains two trajectories; the vehicle commits only when uncertainty resolves.","Risk-POMDP and contingent MPC formalise this for autonomous driving."),
+  q(2088,"Autonomous Driving","competitive","Research",20,"How does responsibility-sensitive safety (RSS) provide formal safety guarantees?",["RSS defines physics-based rules for safe distances and right-of-way that if followed provably prevent the ego vehicle from being the proximate cause of any collision.","RSS guarantees zero probability of collision for any traffic scenario.","RSS is a statistical method bounding collision probability to below 10^{-6} per mile.","RSS replaces the planner with a formal verification algorithm."],0,"Physics-based rules provably prevent ego-at-fault collisions.","RSS defines proper response: if an agent violates RSS invariants the ego follows a defined safety response; the proof shows this cannot lead to ego-fault collisions under specified assumptions.","Intel/Mobileye RSS is integrated into some ADAS systems as a safety supervisor layer."),
+  q(2089,"Autonomous Driving","competitive","Research",20,"Why is closed-loop evaluation emphasised over open-loop metrics in autonomous driving research?",["Open-loop perception metrics do not capture full decision-feedback interaction quality; closed-loop evaluates the feedback loop where ego behaviour affects future observations.","Open-loop metrics fully determine safety and planning quality.","Closed-loop evaluation removes the need for simulation.","Closed-loop evaluation only matters for low-speed parking tasks."],0,"Behaviour affects future observations; closed loop captures this.","Driving is an interactive sequential control problem; open-loop perception metrics like mAP miss how planning decisions affect the scenarios that subsequently arise.","Modern driving challenges increasingly emphasise closed-loop assessment."),
+  q(2090,"Autonomous Driving","competitive","Research",20,"How does end-to-end driving research challenge traditional modular pipeline design?",["It aims to learn planning behaviour directly from sensor inputs without hand-designed modular pipelines avoiding compounding interface errors between modules.","It removes the need for any training data because driving is deterministic.","It guarantees better interpretability than every modular system.","End-to-end means the vehicle no longer needs control outputs."],0,"Sensor-to-plan learning avoids modular interface errors.","Modular pipelines can suffer from error propagation across interfaces and heavy supervision at each stage; end-to-end learning jointly optimises all components.","Recent tutorials highlight both its promise and challenges for deployment."),
+
+  // ── COMPETITIVE: Legged Locomotion ────────────────────────────────────────
+  q(2091,"Legged Locomotion","competitive","Starter",15,"What is the Zero Moment Point (ZMP) and how is it used for biped balance control?",["ZMP is the point where the net moment of gravity and inertia forces has zero horizontal component; keeping ZMP inside the support polygon ensures dynamic stability.","ZMP is the point directly below the centre of mass regardless of motion.","ZMP balance requires the robot to be stationary.","ZMP equals the centre of pressure only for massless legs."],0,"ZMP inside support polygon means dynamically stable.","From Newton-Euler dynamics ZMP = (sum(m_i*(r_i x (g - a_i))))_xy; if ZMP exits the support polygon the robot tips over.","ASIMO and HRP use ZMP preview control for stable biped walking."),
+  q(2092,"Legged Locomotion","competitive","Starter",15,"What distinguishes a static gait from a dynamic gait in legged locomotion?",["Static: CoM projection stays inside the support polygon at all times; dynamic: CoM may leave the polygon with inertial forces maintaining balance.","Static gaits require fewer legs; dynamic gaits require at least 6 legs.","Dynamic gaits always move faster than static gaits.","Static gaits are used only for quadrupeds; dynamic for bipeds."],0,"Support polygon containment: static vs inertia-assisted.","Static: any instantaneous freeze is stable (hexapod tripod gait). Dynamic: momentary instability is tolerated using momentum (running bounding jumping).","Boston Dynamics Spot uses dynamic gaits; deliberate industrial hexapods use static gaits."),
+  q(2093,"Legged Locomotion","competitive","Starter",15,"What is the spring-loaded inverted pendulum (SLIP) model and why is it used as a template for running robots?",["SLIP models a runner as a point mass on a massless spring leg capturing energy storage/return mechanics with a minimal 2-parameter model.","SLIP is a 3D model including all leg joint dynamics.","SLIP only applies to bipeds; quadrupeds use lateral-SLIP.","SLIP models are used only for analysis not controller design."],0,"Point mass plus spring leg: energy exchange template for running.","SLIP exhibits self-stable running solutions; real runners exploit leg compliance similarly.","Atlas Cassie and MIT Cheetah controllers are anchored to SLIP dynamics via virtual compliance."),
+  q(2094,"Legged Locomotion","competitive","Starter",15,"What is the role of centroidal angular momentum in legged robot balance control?",["Centroidal angular momentum represents whole-body rotational momentum about the CoM; regulating it prevents undesired whole-body rotation during contact transitions.","Centroidal angular momentum is zero for all statically balanced postures.","It is used only to compute ZMP for biped balance.","It is equivalent to the sum of joint velocities."],0,"Whole-body rotational momentum about CoM must be regulated.","During contact transition (foot lift) angular momentum can spin the body; momentum-aware controllers explicitly regulate L = sum(I_i*omega_i + r_i x m_i*v_i).","Atlas whole-body controller explicitly minimises centroidal angular momentum rate."),
+  q(2095,"Legged Locomotion","competitive","Starter",15,"Why do legged robots require contact force distribution optimisation when multiple limbs are in contact?",["Multiple contacts create statically indeterminate force distributions; QP-based optimisation distributes forces while satisfying friction cone and normal force constraints.","Contact forces are uniquely determined by Newton laws for any number of contacts.","Force distribution is only needed when more than 6 contact points exist.","Legged robots avoid simultaneous multi-contact phases to simplify control."],0,"Statically indeterminate: optimisation needed with friction/normal constraints.","With n > 6 contacts infinite force distributions satisfy Newton-Euler; QP-based force distribution minimises joint torques subject to friction cones.","Whole-body controllers for quadrupeds and humanoids solve force QPs at 1 kHz."),
+  q(2096,"Legged Locomotion","competitive","Research",20,"How does centroidal MPC enable real-time whole-body motion planning for quadrupeds?",["Centroidal MPC plans CoM and contact force trajectories using a simplified 6-DOF centroidal model; a whole-body IK controller tracks the plan at joint level.","Centroidal MPC solves full multibody dynamics in real time.","The centroidal model is used only for offline trajectory design.","Centroidal MPC directly commands joint torques without an inner-loop controller."],0,"Fast centroidal MPC plus whole-body IK inner loop gives hierarchical control.","Centroidal model: 6 DOF (CoM translation + rotation); MPC horizon ~0.5 s at 100 Hz. WBC maps centroidal plan to joint torques.","MIT Mini Cheetah and ANYmal use centroidal MPC for real-time gait planning."),
+  q(2097,"Legged Locomotion","competitive","Research",20,"Why does RL-based locomotion achieve better hardware robustness than model-based controllers?",["RL policies trained with domain randomisation are exposed to diverse dynamics learning robust strategies that transfer better than controllers tuned for nominal parameters.","RL is more robust because it uses larger neural networks.","RL only outperforms model-based controllers on flat terrain.","RL requires perfect state estimation; model-based controllers are more robust to sensor noise."],0,"Domain randomisation leads to robust generalisation.","Randomising mass friction terrain and actuator parameters; the RL policy learns to cope with all these variations implicitly performing robust control.","ANYmal Cassie and MIT Cheetah achieved hardware transfer via RL plus domain randomisation."),
+  q(2098,"Legged Locomotion","competitive","Research",20,"What makes contact-implicit trajectory optimisation for legged locomotion computationally challenging?",["Contact-implicit TO includes contact forces and mode sequences as optimisation variables creating a mixed-integer or complementarity-constrained NLP with non-convex non-smooth structure.","Contact-implicit TO is simpler because it avoids mode enumeration.","Contact-implicit formulations always converge to the global optimum for periodic gaits.","The main challenge is computing the inertia matrix."],0,"Complementarity constraints plus mode combinatorics give non-smooth MINLP.","Contact: f_n >= 0, d >= 0, f_n*d = 0 (complementarity); mode sequences create combinatorial explosion; relaxations are needed.","DIRTREL CALIPSO and MCIK address contact-implicit optimisation."),
+  q(2099,"Legged Locomotion","competitive","Research",20,"How does energy return in series elastic actuators (SEA) improve legged locomotion efficiency?",["SEA elastic element stores impact energy during landing and releases it during push-off reducing net electrical energy per step.","SEA improves efficiency by reducing joint friction.","Elastic actuators are more efficient only above 5 m/s.","SEA reduces control bandwidth requirements not energy consumption."],0,"Elastic energy storage-return reduces net electrical energy per step.","In running impact energy E_imp = F_max*delta/2; rigid actuators dissipate this as heat; SEA returns it to the system.","ANYmal uses ANYdrive SEAs; their springs return ~20% of step energy."),
+  q(2100,"Legged Locomotion","competitive","Research",20,"What is the Raibert stepping controller key insight for robust running?",["Place the foot at the SLIP neutral point plus a correction proportional to CoM velocity error centering the gait without explicit dynamics solving.","Raibert controller solves full SLIP dynamics online for each step.","The controller requires a precomputed lookup table of all possible gait trajectories.","Raibert rule only applies to quadrupedal bounding."],0,"Foot placement = neutral + velocity correction gives passive gait centering.","Neutral point: foot position where SLIP returns to initial conditions. Correction: delta_x = k_v*(v - v*) reduces velocity error each step.","BigDog and MIT Cheetah use Raibert-inspired stepping for robust running."),
+  q(2101,"Legged Locomotion","competitive","Research",20,"How does hybrid zero dynamics (HZD) enable provably stable bipedal walking via virtual constraints?",["Virtual constraints enforce output functions to zero via feedback rendering invariant a lower-dimensional hybrid zero surface where periodic orbits can be analysed and stabilised.","Virtual constraints are physical springs in robot joints.","HZD applies only to holonomically constrained systems.","Virtual constraints directly specify joint angle references without feedback."],0,"Feedback-enforced outputs equal zero create invariant surface with stable periodic orbits.","By choosing outputs y = h(q) = 0 and enforcing via I/O linearisation dynamics reduce to the zero dynamics; stability of the hybrid orbit on this manifold implies full-system stability.","DURUS RABBIT and Cassie locomotion controllers use HZD-based gait design."),
+  q(2102,"Legged Locomotion","competitive","Research",20,"How does convex decomposition of friction cones enable real-time QP-based force control?",["Linearising friction cones into polyhedral approximations converts the SOCP into a QP solvable at 1 kHz on embedded hardware.","Convex decomposition simplifies kinematic models not force control.","The contact wrench cone is already convex and requires no decomposition.","QP-based force control requires the full nonlinear friction cone."],0,"Polyhedral friction cone approximation converts SOCP to QP.","True friction cone: ||f_t|| <= mu*f_n (SOCP). Polyhedral approx: n linear inequalities per contact; QP solvers handle this in microseconds.","MIT Cheetah ANYmal and Spot use linearised friction cone QPs for torque-controlled locomotion."),
+  q(2103,"Legged Locomotion","competitive","Research",20,"What limits model-based footstep planners on unstructured outdoor terrain compared to learning-based approaches?",["Model-based planners require accurate terrain models and dynamics parameters; learning-based approaches generalise from experience to handle terrain outside the model scope.","Model-based planners always outperform learning-based ones on outdoor terrain.","Learning-based footstep planners require full 3D maps unlike model-based ones.","The limitation is computational; model-based planners are too slow for outdoor terrain."],0,"Model accuracy limits while learning generalises beyond model scope.","Uneven terrain (mud grass rocks) creates contact dynamics outside rigid-body model scope; learned policies trained on diverse simulation terrain generalise via domain randomisation.","Boston Dynamics Spot uses both model-based planning and learned terrain adaptation."),
+  q(2104,"Legged Locomotion","competitive","Research",20,"How does gait emergence in RL-trained legged locomotion differ from explicitly designed model-based gaits?",["RL discovers gait patterns (trot bound gallop) as emergent solutions to the reward objective without being programmed; model-based gaits are explicitly specified as periodic references.","RL can only discover walking gaits; other gaits require explicit programming.","Emergent RL gaits are always less efficient than analytically derived gaits.","RL-discovered gaits are identical to analytically derived SLIP-based gaits."],0,"Reward optimisation leads to gait patterns emerging without explicit programming.","Trained with energy efficiency and velocity rewards RL policies spontaneously produce trot bound and gallop transitions at appropriate speeds.","DeepMind and ETH Zurich RL controllers exhibit gait transitions not explicitly programmed."),
+  q(2105,"Legged Locomotion","competitive","Research",20,"What is passivity-based control advantage for legged robots interacting with uncertain contact?",["Passive systems have inherent stability for any passive environment; designing the robot as passive ensures stable interaction regardless of ground stiffness or impact timing uncertainty.","Passivity-based control eliminates the need for any feedback sensor.","Passive control is only stable for quasi-static walking.","Passivity guarantees stability only when contact is perfectly rigid."],0,"Passive plus passive environment equals stable interaction without contact model.","If the robot is passive (V_dot <= u^T*y) and the ground is passive their interconnection is stable by passivity composition regardless of contact model uncertainty.","Variable impedance controllers on Atlas and Valkyrie exploit passivity for robust contact."),
+
+  // ── COMPETITIVE: Motion Planning ──────────────────────────────────────────
+  q(2106,"Motion Planning","competitive","Starter",15,"What is completeness in motion planning and why is probabilistic completeness weaker than resolution completeness?",["Resolution complete: finds a path if one exists at the given discretisation; probabilistic complete: probability of finding a path approaches 1 as samples approach infinity but may not in finite time.","Probabilistic completeness is stronger because it provides a probability guarantee.","Resolution completeness applies only to grid-based planners.","Both guarantee finding a path in finite time."],0,"Resolution: finite-time guarantee; probabilistic: asymptotic guarantee.","Resolution-complete planners (A* on fine grid) find paths given fine enough discretisation. Probabilistically complete planners (RRT) will eventually find a path but without a finite-time guarantee.","PRM* and RRT* are probabilistically complete and asymptotically optimal."),
+  q(2107,"Motion Planning","competitive","Starter",15,"Why does A* guarantee finding the optimal path when the heuristic is admissible?",["An admissible heuristic never overestimates the true cost; A* expands nodes in order of f = g + h guaranteeing the goal is first reached via the minimum-cost path.","A* is optimal only when the heuristic equals zero (Dijkstra algorithm).","Admissible heuristics guarantee optimality only for grid-based graphs.","A* finds the optimal path only if the heuristic is also consistent."],0,"h <= h* guarantees A* expands the optimal path first.","With admissible h no overestimate biases the expansion order; the goal is first popped from the open set only when its true optimal cost g* is known.","Euclidean distance is admissible for holonomic robots in obstacle-free space."),
+  q(2108,"Motion Planning","competitive","Starter",15,"What is the key computational advantage of RRT over grid-based planners for high-dimensional configuration spaces?",["RRT grows a tree by random sampling and nearest-neighbour extension avoiding explicit discretisation of the high-dimensional C-space.","RRT is faster because it uses a hash table instead of a priority queue.","RRT avoids collision checking by assuming a convex environment.","RRT is faster than A* only for low-dimensional problems."],0,"Sampling avoids exponential grid size in high dimensions.","A 10-DOF robot with 100 cells/joint needs 10^10 nodes; RRT samples grow logarithmically with dimension making it tractable for 7-DOF+ arms.","RRT is standard for manipulation path planning in MoveIt! and OMPL."),
+  q(2109,"Motion Planning","competitive","Starter",15,"What asymptotic optimality property does RRT* provide compared to RRT?",["RRT* rewires the tree to maintain optimal paths; as samples approach infinity the solution path converges to the optimal path.","RRT* finds the optimal path in finite time with a fixed number of samples.","RRT* is optimal only for holonomic systems.","Asymptotic optimality of RRT* requires a consistent heuristic."],0,"Rewiring leads to optimal path as samples approach infinity.","RRT adds a node connecting to the nearest neighbour; RRT* additionally considers nearby nodes within a shrinking radius rewiring if a shorter path exists.","For manipulation 10000 samples of RRT* often find near-optimal paths."),
+  q(2110,"Motion Planning","competitive","Starter",15,"Why is PRM preferred over RRT for multi-query planning scenarios?",["PRM builds a graph of sampled configurations once; multiple queries are answered by connecting start/goal to the graph and running Dijkstra amortising construction cost.","PRM is faster than RRT for single-query planning in all environments.","PRM avoids collision checking by sampling only valid configurations.","PRM guarantees finding the globally shortest path in all cases."],0,"Precomputed roadmap amortises cost over multiple queries.","RRT: one tree per query. PRM: build once query many times; for an assembly robot with hundreds of pick-and-place queries PRM construction is O(n^2) but queries are O(log n).","Warehouse robots use PRMs precomputed for their static environment."),
+  q(2111,"Motion Planning","competitive","Research",20,"How does the narrow passage problem limit sampling-based planner performance and what techniques address it?",["In narrow passages uniform random sampling rarely generates valid samples inside the passage requiring exponentially more samples or specialised bridge/Gaussian samplers.","Narrow passages are easily handled by increasing sample count linearly.","The narrow passage problem only affects PRM not RRT.","Narrow passages are only problematic above 6 DOF."],0,"Uniform sampling underrepresents narrow passages leading to exponential sample count.","Probability of sampling in passage of measure epsilon: epsilon/V approximately 0. Bridge sampling Gaussian sampling and obstacle-based samplers bias toward narrow regions.","OBPRM Visibility-based PRM and obstacle-based sampling address narrow passages."),
+  q(2112,"Motion Planning","competitive","Research",20,"What is kinodynamic planning and why do sampling-based methods require forward simulation rather than interpolation?",["Kinodynamic planning respects velocity/acceleration bounds; connecting two states requires simulating differential equations forward rather than straight-line C-space interpolation.","Kinodynamic planning uses inverse kinematics to connect states.","Forward simulation is only needed when the robot has more than 4 actuators.","Kinodynamic constraints can always be converted to holonomic constraints."],0,"Differential constraints require forward simulation to connect states.","For a car steering constraint: y_dot/x_dot = tan(theta); connecting (x1,y1,theta1) to (x2,y2,theta2) in a straight line violates this; RRT for kinodynamic systems simulates control inputs forward.","SST* kinodynamic RRT* and trajectory optimisation solve kinodynamic planning."),
+  q(2113,"Motion Planning","competitive","Research",20,"How does BIT* improve upon RRT* in terms of convergence speed?",["BIT* combines informed search (heuristic pruning) with batch implicit sampling focusing samples on the region that can improve the current solution.","BIT* is faster by using a larger nearest-neighbour radius than RRT*.","BIT* improves speed by reducing search space dimensionality.","BIT* replaces random sampling with quasi-random Halton sequences."],0,"Heuristic pruning plus batch sampling focus computation on improving the current solution.","BIT*: maintain an implicit RRT over batch samples; prune samples with f = g + h >= c_best; process remaining edges in cost order combining A* pruning with RRT* rewiring.","BIT* achieves RRT* quality with 10-100x fewer vertex expansions on typical problems."),
+  q(2114,"Motion Planning","competitive","Research",20,"Why does trajectory optimisation tend to produce locally optimal solutions dependent on initialisation?",["Trajectory optimisation solves a non-convex NLP with multiple local minima; gradient-based methods converge to the nearest local minimum from the initial trajectory.","Trajectory optimisation always finds global optima if the problem is smooth.","Local optima only occur in non-holonomic systems.","Trajectory optimisation with obstacle constraints is always convex."],0,"Non-convex NLP: local convergence depends on initialisation.","Obstacle avoidance creates non-convex constraints; smooth gradient-based methods (STOMP TrajOpt GPMP2) cannot escape local minima.","Combining sampling-based initialisation with trajectory optimisation provides both feasibility and local quality."),
+  q(2115,"Motion Planning","competitive","Research",20,"What is a signed distance field (SDF) and why is it preferred over mesh representations for collision avoidance in trajectory optimisation?",["SDF stores the signed distance to the nearest obstacle at every grid point; smooth gradients enable differentiable collision avoidance without explicit contact point computation.","SDF is preferred because it requires less memory than meshes.","SDF cannot represent concave obstacles accurately.","SDF is used only for 2D environments; meshes are required for 3D planning."],0,"Smooth distance function enables differentiable collision avoidance everywhere.","SDF(x) = +/-dist(x, surface); gradient of SDF points away from the nearest obstacle; trajectory optimisers use this as a smooth collision cost.","TrajOpt GPMP2 and CHOMP use SDF-based collision costs for arm trajectory optimisation."),
+  q(2116,"Motion Planning","competitive","Research",20,"How does CHOMP functional gradient differ from standard parameter optimisation in trajectory planning?",["CHOMP minimises a combination of obstacle cost and trajectory smoothness via functional gradient descent on the space of trajectories not just parameter vectors.","CHOMP optimises only endpoint positions.","CHOMP is a sampling-based method evaluating trajectory cost by simulation.","CHOMP uses L2 norm of joint torques as its objective."],0,"Functional gradient descent on trajectory space combines obstacle plus smoothness costs.","Objective: U[q] = integral[A_obs(q(t)) + (1/2)||q_dot||^2]dt; functional gradient delta_U/delta_q gives the descent direction in trajectory space.","CHOMP and GPMP2 produce smooth collision-free trajectories for 7-DOF manipulation."),
+  q(2117,"Motion Planning","competitive","Research",20,"What is the key insight of the informed RRT* algorithm?",["It samples only from the prolate hyperspheroid containing all configurations that could improve the current solution focusing samples on the solution-improving region.","Informed RRT* uses the heuristic to sort existing nodes to rewire first.","It restricts sampling to the convex hull of the current path.","Informed sampling applies only after the first solution is found."],0,"Ellipsoidal subset of improving solutions focuses sampling.","The set of states that can improve a path of cost c* is the prolate hyperspheroid {x : d(x_start,x) + d(x,x_goal) <= c*}; sampling only this region wastes no samples on non-improving regions.","Informed RRT* converges to optimum 10-100x faster than RRT* on typical benchmarks."),
+  q(2118,"Motion Planning","competitive","Research",20,"How does Gaussian process motion planning (GPMP) unify probabilistic inference with trajectory optimisation?",["GPMP models the trajectory as a sample from a GP prior then uses factor graph inference to find the MAP trajectory minimising obstacle cost and satisfying dynamics constraints.","GPMP uses GPs only for environment modelling not trajectory parameterisation.","GPMP is a sampling-based method drawing trajectory samples from a GP.","The GP prior encodes the robot dynamics model exactly."],0,"GP trajectory prior plus factor graph MAP inference equals probabilistic trajectory optimisation.","GP prior penalises kinodynamic violations; obstacle factors penalise collisions; MAP inference via factor graphs solves the joint problem efficiently.","GPMP2 achieves real-time arm trajectory planning with uncertainty-aware collision avoidance."),
+  q(2119,"Motion Planning","competitive","Research",20,"Why does topological path diversity matter for robust robot manipulation planning?",["Different homotopy classes of paths represent qualitatively different obstacle avoidance strategies; maintaining solutions in multiple classes enables immediate fallback when one path is blocked.","All paths between the same endpoints are topologically identical.","Topological path classes only matter for 2D navigation.","Different homotopy classes are equivalent in path length."],0,"Different homotopy classes give different avoidance strategies as fallbacks.","If a robot primary path (left of obstacle) becomes blocked a pre-computed solution in a different homotopy class (right of obstacle) enables immediate fallback.","Homotopy-aware PRM and topological mapping maintain diverse path options."),
+  q(2120,"Motion Planning","competitive","Research",20,"How does the cell decomposition approach differ from sampling-based methods in completeness guarantees?",["Exact cell decomposition provides resolution completeness by explicitly representing free space; approximate decomposition (occupancy grid) provides completeness at the grid scale.","Cell decomposition provides probabilistic completeness; sampling provides exact completeness.","Cell decomposition is incomplete because cells cannot represent narrow passages.","Cell decomposition requires sampling to fill each cell with valid configurations."],0,"Exact decomposition explicitly represents free space giving resolution completeness.","Exact: decompose C_free into cells and compute connectivity graph -- complete. Approximate: quantise to grid -- complete at grid resolution.","2D navigation stacks use occupancy grid decomposition with A* for global planning."),
 ];
 
-function shuffleArray(array) {
-  const arr = [...array];
-  for (let i = arr.length - 1; i > 0; i -= 1) {
+// ── utilities ────────────────────────────────────────────────────────────────
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
+    [a[i], a[j]] = [a[j], a[i]];
   }
-  return arr;
+  return a;
+}
+function buildPack(mode, realm) {
+  return QUESTION_BANK.filter(item => item.mode === mode && item.realm === realm);
 }
 
-function SegmentedToggle({ value, onChange, leftLabel, leftValue, rightLabel, rightValue }) {
+// ── sound ────────────────────────────────────────────────────────────────────
+function useSound() {
+  const ctx = useRef(null);
+  const nodes = useRef([]);
+  const active = useRef(false);
+
+  function stop() {
+    nodes.current.forEach(n => { try { n.stop(); } catch(e) {} });
+    nodes.current = [];
+    active.current = false;
+  }
+
+  function calm() {
+    if (active.current) return;
+    try {
+      if (!ctx.current) ctx.current = new (window.AudioContext || window.webkitAudioContext)();
+      const ac = ctx.current;
+      active.current = true;
+      const buf = ac.createBuffer(1, ac.sampleRate * 4, ac.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      const src = ac.createBufferSource(); src.buffer = buf; src.loop = true;
+      const flt = ac.createBiquadFilter(); flt.type = "lowpass"; flt.frequency.value = 400;
+      const g = ac.createGain(); g.gain.value = 0.03;
+      src.connect(flt); flt.connect(g); g.connect(ac.destination); src.start();
+      nodes.current.push(src);
+      [[110, 0.01], [220, 0.007], [55, 0.012]].forEach(([freq, gain]) => {
+        const o = ac.createOscillator(); const og = ac.createGain();
+        o.type = "sine"; o.frequency.value = freq; og.gain.value = gain;
+        o.connect(og); og.connect(ac.destination); o.start();
+        nodes.current.push(o);
+      });
+    } catch(e) {}
+  }
+
+  function competitive() {
+    if (active.current) return;
+    try {
+      if (!ctx.current) ctx.current = new (window.AudioContext || window.webkitAudioContext)();
+      const ac = ctx.current;
+      active.current = true;
+      [[55, 4, 0.03], [110, 2, 0.02], [220, 1, 0.01]].forEach(([freq, lfoFreq, gain]) => {
+        const o = ac.createOscillator(); const g = ac.createGain();
+        const lfo = ac.createOscillator(); const lg = ac.createGain();
+        o.type = "sawtooth"; o.frequency.value = freq;
+        lfo.type = "square"; lfo.frequency.value = lfoFreq;
+        lg.gain.value = 0.015; g.gain.value = gain;
+        lfo.connect(lg); lg.connect(g.gain);
+        o.connect(g); g.connect(ac.destination);
+        lfo.start(); o.start();
+        nodes.current.push(lfo, o);
+      });
+      const buf = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      const src = ac.createBufferSource(); src.buffer = buf; src.loop = true;
+      const flt = ac.createBiquadFilter(); flt.type = "bandpass"; flt.frequency.value = 900; flt.Q.value = 0.4;
+      const g = ac.createGain(); g.gain.value = 0.015;
+      src.connect(flt); flt.connect(g); g.connect(ac.destination); src.start();
+      nodes.current.push(src);
+    } catch(e) {}
+  }
+
+  useEffect(() => () => stop(), []);
+  return { calm, competitive, stop };
+}
+
+// ── toggle ────────────────────────────────────────────────────────────────────
+function Toggle({ value, onChange, left, lv, right, rv, comp }) {
   return (
-    <div className="inline-flex rounded-2xl border border-blue-200/70 bg-white/80 p-1 shadow-sm">
-      <button
-        onClick={() => onChange(leftValue)}
-        className={`rounded-xl px-3 py-2 text-sm font-medium transition-all ${
-          value === leftValue ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 hover:bg-blue-50"
-        }`}
-      >
-        {leftLabel}
-      </button>
-      <button
-        onClick={() => onChange(rightValue)}
-        className={`rounded-xl px-3 py-2 text-sm font-medium transition-all ${
-          value === rightValue ? "bg-cyan-600 text-white shadow-sm" : "text-slate-600 hover:bg-cyan-50"
-        }`}
-      >
-        {rightLabel}
-      </button>
+    <div className={`inline-flex rounded-2xl border p-1 ${comp ? "border-red-800 bg-black/80" : "border-green-200 bg-white/80"}`}>
+      {[{l: left, v: lv}, {l: right, v: rv}].map(({l, v}) => (
+        <button key={v} onClick={() => onChange(v)}
+          className={`rounded-xl px-3 py-2 text-sm font-semibold transition-all ${
+            value === v
+              ? (comp ? "bg-red-700 text-white" : "bg-emerald-600 text-white")
+              : (comp ? "text-red-300 hover:bg-red-900/40" : "text-slate-600 hover:bg-green-50")
+          }`}>{l}</button>
+      ))}
     </div>
   );
 }
 
-function buildQuestionPack(mode, realmName) {
-  return QUESTION_BANK.filter((item) => item.mode === mode && item.realm === realmName);
-}
-
-export default function PhysicalAIMissionPossible() {
+// ── main app ──────────────────────────────────────────────────────────────────
+export default function App() {
   const [screen, setScreen] = useState("home");
-  const [gameMode, setGameMode] = useState("easy");
+  const [mode, setMode] = useState("calm");
   const [uiMode, setUiMode] = useState("normal");
-  const [realmIndex, setRealmIndex] = useState(0);
-  const [questionIndex, setQuestionIndex] = useState(0);
-  const [selectedChoice, setSelectedChoice] = useState(null);
-  const [showHint, setShowHint] = useState(false);
-  const [showExplain, setShowExplain] = useState(false);
+  const [ri, setRi] = useState(0);
+  const [qi, setQi] = useState(0);
+  const [sel, setSel] = useState(null);
+  const [hint, setHint] = useState(false);
+  const [explain, setExplain] = useState(false);
   const [score, setScore] = useState(0);
   const [answered, setAnswered] = useState([]);
-  const [reviewList, setReviewList] = useState([]);
+  const [saved, setSaved] = useState([]);
   const [search, setSearch] = useState("");
+  const [muted, setMuted] = useState(false);
+  const snd = useSound();
 
-  const isNeuro = uiMode === "neuro";
-  const realms = gameMode === "easy" ? EASY_REALMS : HARD_REALMS;
-  const currentRealm = realms[realmIndex];
-  const currentRealmQuestions = currentRealm ? buildQuestionPack(gameMode, currentRealm.name) : [];
-  const currentQuestion = currentRealmQuestions[questionIndex] || null;
+  const comp = mode === "competitive";
+  const realms = comp ? COMPETITIVE_REALMS : CALM_REALMS;
+  const realm = realms[ri];
+  const questions = realm ? buildPack(mode, realm.name) : [];
+  const curQ = questions[qi] || null;
 
-  const optionPack = useMemo(() => {
-    if (!currentQuestion) return [];
-    return shuffleArray(
-      currentQuestion.options.map((text, idx) => ({
-        id: `${currentQuestion.id}-${idx}`,
-        text,
-        correct: idx === currentQuestion.answer,
-      }))
-    );
-  }, [currentQuestion?.id]);
+  const opts = useMemo(() => {
+    if (!curQ) return [];
+    return shuffleArray(curQ.options.map((t, i) => ({ id: `${curQ.id}-${i}`, text: t, correct: i === curQ.answer })));
+  }, [curQ?.id]);
 
-  const accuracy = answered.length > 0 ? Math.round((answered.filter((item) => item.correct).length / answered.length) * 100) : 0;
-  const savedQuestionIds = Array.from(new Set(reviewList));
-  const progress = currentRealmQuestions.length > 0 ? ((questionIndex + (showExplain ? 1 : 0)) / currentRealmQuestions.length) * 100 : 0;
+  const acc = answered.length > 0 ? Math.round(answered.filter(a => a.correct).length / answered.length * 100) : 0;
+  const prog = questions.length > 0 ? ((qi + (explain ? 1 : 0)) / questions.length) * 100 : 0;
 
-  const appBg = isNeuro
-    ? "bg-[linear-gradient(180deg,#f8fcff_0%,#eefaf8_100%)]"
-    : "bg-[linear-gradient(180deg,#f8fbff_0%,#edf4ff_55%,#f4f8ff_100%)]";
-  const shell = isNeuro
-    ? "border-cyan-100/90 bg-white/95 shadow-[0_12px_40px_rgba(16,185,129,0.08)]"
-    : "border-blue-100 bg-white/90 shadow-[0_14px_48px_rgba(37,99,235,0.08)]";
-  const panel = isNeuro ? "border-cyan-100 bg-cyan-50/70" : "border-blue-100 bg-blue-50/70";
-  const primary = isNeuro ? "bg-cyan-600 hover:bg-cyan-500" : "bg-blue-600 hover:bg-blue-500";
+  const T = comp ? {
+    bg: "bg-gradient-to-br from-black via-gray-950 to-red-950",
+    card: "border-red-900/60 bg-black/90 shadow-[0_14px_48px_rgba(220,38,38,0.15)]",
+    panel: "border-red-900/40 bg-red-950/30",
+    btn: "bg-red-700 hover:bg-red-600 text-white",
+    acc: "text-red-400",
+    badge: "bg-red-950/60 text-red-300 border border-red-800/40",
+    bar: "from-red-900 via-red-700 to-red-500",
+    prog: "bg-red-600",
+    h: "text-red-100",
+    sub: "text-red-300/60",
+    correct: "border-emerald-600 bg-emerald-950/60",
+    wrong: "border-red-600 bg-red-950/60",
+    selB: "border-red-500 bg-red-950/40",
+    idle: "border-red-900/40 bg-black/50 hover:bg-red-950/40",
+    exit: "border-red-800 text-red-300 hover:bg-red-950/40",
+    body: "text-red-100",
+    muted: "text-red-200/80",
+  } : {
+    bg: "bg-gradient-to-br from-slate-50 via-green-50 to-teal-50",
+    card: "border-emerald-100 bg-white/95 shadow-[0_14px_48px_rgba(16,185,129,0.08)]",
+    panel: "border-emerald-100 bg-emerald-50/70",
+    btn: "bg-emerald-600 hover:bg-emerald-500 text-white",
+    acc: "text-emerald-700",
+    badge: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+    bar: "from-emerald-500 via-teal-400 to-cyan-400",
+    prog: "bg-emerald-500",
+    h: "text-slate-900",
+    sub: "text-slate-500",
+    correct: "border-emerald-400 bg-emerald-50",
+    wrong: "border-rose-300 bg-rose-50",
+    selB: "border-emerald-400 bg-emerald-50",
+    idle: "border-emerald-100 bg-white hover:bg-emerald-50/60",
+    exit: "border-emerald-200 text-slate-600 hover:bg-emerald-50",
+    body: "text-slate-800",
+    muted: "text-slate-600",
+  };
 
-  function resetQuestionView() {
-    setSelectedChoice(null);
-    setShowHint(false);
-    setShowExplain(false);
+  function resetQ() { setSel(null); setHint(false); setExplain(false); }
+
+  function startMode(m, idx = 0) {
+    setMode(m); setRi(idx); setQi(0); setScore(0); setAnswered([]); resetQ(); setScreen("play");
+    if (!muted) { snd.stop(); setTimeout(() => m === "calm" ? snd.calm() : snd.competitive(), 300); }
   }
 
-  function startQuest(mode, startIndex = 0) {
-    setGameMode(mode);
-    setRealmIndex(startIndex);
-    setQuestionIndex(0);
-    setScore(0);
-    setAnswered([]);
-    resetQuestionView();
-    setScreen("play");
+  function openRealm(m, idx) {
+    setMode(m); setRi(idx); setQi(0); resetQ(); setScreen("play");
+    if (!muted) { snd.stop(); setTimeout(() => m === "calm" ? snd.calm() : snd.competitive(), 300); }
   }
 
-  function openRealm(mode, index) {
-    setGameMode(mode);
-    setRealmIndex(index);
-    setQuestionIndex(0);
-    resetQuestionView();
-    setScreen("play");
-  }
-
-  function submitAnswer() {
-    if (selectedChoice === null || showExplain || !currentQuestion) return;
-    const chosen = optionPack[selectedChoice];
-    const correct = !!chosen?.correct;
-    if (correct) setScore((prev) => prev + currentQuestion.points);
-    setAnswered((prev) => [...prev, { id: currentQuestion.id, correct }]);
-    setShowExplain(true);
+  function submit() {
+    if (sel === null || explain || !curQ) return;
+    const correct = !!opts[sel]?.correct;
+    if (correct) setScore(s => s + curQ.points);
+    setAnswered(a => [...a, { id: curQ.id, correct }]);
+    setExplain(true);
   }
 
   function toggleSave() {
-    if (!currentQuestion) return;
-    setReviewList((prev) =>
-      prev.includes(currentQuestion.id) ? prev.filter((id) => id !== currentQuestion.id) : [...prev, currentQuestion.id]
-    );
+    if (!curQ) return;
+    setSaved(s => s.includes(curQ.id) ? s.filter(id => id !== curQ.id) : [...s, curQ.id]);
   }
 
-  function nextQuestion() {
-    if (!currentQuestion) return;
-    if (questionIndex + 1 < currentRealmQuestions.length) {
-      setQuestionIndex((prev) => prev + 1);
-      resetQuestionView();
-      return;
-    }
-
-    if (realmIndex + 1 < realms.length) {
-      setScreen("realmComplete");
-      return;
-    }
-
-    setScreen("result");
+  function next() {
+    if (!curQ) return;
+    if (qi + 1 < questions.length) { setQi(i => i + 1); resetQ(); return; }
+    if (ri + 1 < realms.length) { setScreen("done"); return; }
+    setScreen("result"); snd.stop();
   }
 
-  function continueToNextRealm() {
-    if (realmIndex + 1 >= realms.length) {
-      setScreen("result");
-      return;
-    }
-    setRealmIndex((prev) => prev + 1);
-    setQuestionIndex(0);
-    resetQuestionView();
-    setScreen("play");
+  function continueRealm() {
+    if (ri + 1 >= realms.length) { setScreen("result"); snd.stop(); return; }
+    setRi(i => i + 1); setQi(0); resetQ(); setScreen("play");
   }
 
-  function replayCurrentMode() {
-    startQuest(gameMode, 0);
+  function goHome() { setScreen("home"); snd.stop(); }
+
+  function toggleMute() {
+    if (muted) {
+      setMuted(false);
+      if (screen === "play") setTimeout(() => mode === "calm" ? snd.calm() : snd.competitive(), 100);
+    } else { setMuted(true); snd.stop(); }
   }
 
-  const filteredEasyRealms = EASY_REALMS.filter((realm) => {
-    const t = search.toLowerCase();
-    return !t || realm.name.toLowerCase().includes(t) || realm.description.toLowerCase().includes(t);
-  });
-  const filteredHardRealms = HARD_REALMS.filter((realm) => {
-    const t = search.toLowerCase();
-    return !t || realm.name.toLowerCase().includes(t) || realm.description.toLowerCase().includes(t);
-  });
+  const fCalm = CALM_REALMS.filter(r => !search || r.name.toLowerCase().includes(search.toLowerCase()) || r.description.toLowerCase().includes(search.toLowerCase()));
+  const fComp = COMPETITIVE_REALMS.filter(r => !search || r.name.toLowerCase().includes(search.toLowerCase()) || r.description.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div className={`min-h-screen p-6 text-slate-900 ${appBg}`}>
-      <div className="max-w-6xl mx-auto space-y-6">
-        <div className={`flex flex-wrap items-center justify-between gap-4 rounded-[28px] border px-5 py-5 ${shell}`}>
+    <div className={`min-h-screen p-4 md:p-6 ${T.bg} transition-all duration-700`}>
+      <div className="max-w-7xl mx-auto space-y-5">
+
+        {/* HEADER */}
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
+          className={`flex flex-wrap items-center justify-between gap-4 rounded-[28px] border px-5 py-4 ${T.card}`}>
           <div>
-            <div className={`inline-flex items-center gap-2 rounded-full border px-4 py-1 text-xs font-semibold uppercase tracking-[0.14em] ${panel}`}>
-              Physical AI interview quiz
+            <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-widest ${T.badge}`}>
+              {comp ? "⚡ COMPETITIVE" : "🌿 CALM"} — Physical AI Quiz
             </div>
-            <h1 className="mt-3 text-3xl md:text-5xl font-black tracking-tight">Physical AI - Mission Possible</h1>
-            <p className="mt-2 max-w-3xl text-sm md:text-base leading-7 text-slate-600">
-              {isNeuro
-                ? "A calmer interface with the same quiz depth, softer contrast and reduced visual intensity."
-                : "A structured robotics quiz with easy foundations and harder research-inspired realms."}
-            </p>
+            <h1 className={`mt-2 text-3xl md:text-4xl font-black tracking-tight ${T.h}`}>Physical AI Preparation </h1>
+            <p className={`mt-1 text-sm ${T.sub}`}>{comp ? "High-stakes research questions. Prove your mastery." : "Build deep foundations. Learn without pressure."}</p>
           </div>
-          <SegmentedToggle
-            value={uiMode}
-            onChange={setUiMode}
-            leftLabel="Normal"
-            leftValue="normal"
-            rightLabel="Neurodiverse"
-            rightValue="neuro"
-          />
-        </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <button onClick={toggleMute} className={`rounded-2xl px-3 py-2 text-sm font-medium border transition-all ${T.exit}`}>{muted ? "🔇 Unmute" : "🔊 Mute"}</button>
+          </div>
+        </motion.div>
 
+        {/* HOME */}
         {screen === "home" && (
-          <div className="space-y-6">
-            <div className="grid lg:grid-cols-[1.15fr_0.85fr] gap-6">
-              <Card className={`rounded-[30px] border ${shell}`}>
-                <CardContent className="p-8 space-y-5">
-                  <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] ${panel}`}>
-                    Two difficulty tracks
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+            <div className="grid lg:grid-cols-2 gap-5">
+              <motion.div whileHover={{ y: -4 }} onClick={() => startMode("calm")}
+                className="rounded-[28px] border border-emerald-100 bg-white/95 shadow-lg overflow-hidden cursor-pointer">
+                <div className="h-2 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400" />
+                <div className="p-7 space-y-4">
+                  <div className="text-4xl">🌿</div>
+                  <h2 className="text-2xl md:text-3xl font-black text-slate-900">Calm Mode</h2>
+                  <p className="text-slate-600 leading-relaxed">10 foundational realms. Nature soundscape. 15 questions each covering kinematics to computation — no pressure, pure learning.</p>
+                  <div className="flex flex-wrap gap-2">
+                    {CALM_REALMS.slice(0,5).map(r => <span key={r.name} className="px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200">{r.icon} {r.name}</span>)}
+                    <span className="px-2 py-1 rounded-full bg-slate-100 text-slate-500 text-xs font-semibold">+5 more</span>
                   </div>
-                  <h2 className="text-2xl md:text-4xl font-black leading-tight">Build fundamentals first, then move into harder robotics theory.</h2>
-                  <p className="max-w-2xl text-base md:text-lg leading-8 text-slate-600">
-                    Easy mode targets ages 15+ and undergraduate foundations. Difficulty mode contains more theoretically challenging questions, with the back half of each realm inspired by active research themes.
-                  </p>
-                  <div className="flex flex-wrap gap-3">
-                    <Button className={`rounded-2xl px-5 py-6 text-base text-white ${primary}`} onClick={() => startQuest("easy", 0)}>
-                      Start Easy Mode
-                    </Button>
-                    <Button variant="secondary" className={`rounded-2xl px-5 py-6 text-base border ${panel}`} onClick={() => startQuest("hard", 0)}>
-                      Start Difficulty Mode
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                  <button className="mt-2 rounded-2xl px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-all w-full">Start Calm Mode 🌱</button>
+                </div>
+              </motion.div>
 
-              <Card className={`rounded-[30px] border ${shell}`}>
-                <CardContent className="p-6 space-y-4">
-                  <div>
-                    <div className="text-sm font-medium text-slate-500">Question bank</div>
-                    <div className="mt-2 text-5xl font-black">{QUESTION_BANK.length}</div>
+              <motion.div whileHover={{ y: -4 }} onClick={() => startMode("competitive")}
+                className="rounded-[28px] border border-red-900/60 bg-black/90 shadow-[0_14px_48px_rgba(220,38,38,0.2)] overflow-hidden cursor-pointer">
+                <div className="h-2 bg-gradient-to-r from-red-900 via-red-600 to-red-400" />
+                <div className="p-7 space-y-4">
+                  <div className="text-4xl">⚡</div>
+                  <h2 className="text-2xl md:text-3xl font-black text-red-100">Competitive Mode</h2>
+                  <p className="text-red-300/80 leading-relaxed">8 research-level realms. Adrenaline soundscape. 15 questions each — RL, optimization, foundation models and beyond.</p>
+                  <div className="flex flex-wrap gap-2">
+                    {COMPETITIVE_REALMS.slice(0,5).map(r => <span key={r.name} className="px-2 py-1 rounded-full bg-red-950/60 text-red-300 text-xs font-semibold border border-red-800/40">{r.icon} {r.name}</span>)}
+                    <span className="px-2 py-1 rounded-full bg-red-950/40 text-red-400 text-xs font-semibold">+3 more</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className={`rounded-2xl border p-4 ${panel}`}>
-                      <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Easy realms</div>
-                      <div className="mt-1 text-2xl font-bold">{EASY_REALMS.length}</div>
-                    </div>
-                    <div className={`rounded-2xl border p-4 ${panel}`}>
-                      <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Hard realms</div>
-                      <div className="mt-1 text-2xl font-bold">{HARD_REALMS.length}</div>
-                    </div>
-                  </div>
-                  <div className={`rounded-2xl border p-4 text-sm leading-6 ${panel}`}>
-                    Infinite play is enabled because there are no lives. You can replay any mode or jump directly into any realm.
-                  </div>
-                </CardContent>
-              </Card>
+                  <button className="mt-2 rounded-2xl px-6 py-3 bg-red-700 hover:bg-red-600 text-white font-bold transition-all w-full">Enter Competitive Mode 🔥</button>
+                </div>
+              </motion.div>
             </div>
 
-            <Card className={`rounded-[30px] border ${shell}`}>
-              <CardHeader>
-                <CardTitle className="text-2xl font-black">Browse realms</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                <Input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search by topic"
-                  className="max-w-md rounded-2xl border-blue-100 bg-white text-slate-900 placeholder:text-slate-400"
-                />
-
-                <div className="space-y-4">
-                  <div>
-                    <div className="mb-3 flex items-center gap-2">
-                      <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50">Easy Mode</Badge>
-                      <span className="text-sm text-slate-600">Undergraduate level, ages 15+.</span>
-                    </div>
-                    <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                      {filteredEasyRealms.map((realm, idx) => (
-                        <motion.button
-                          whileHover={{ y: -3 }}
-                          whileTap={{ scale: 0.99 }}
-                          key={`easy-${realm.name}`}
-                          onClick={() => openRealm("easy", idx)}
-                          className="rounded-[26px] border border-blue-100 bg-white p-5 text-left shadow-[0_10px_30px_rgba(37,99,235,0.08)]"
-                        >
-                          <div className="h-1 rounded-full bg-gradient-to-r from-blue-600 to-cyan-400" />
-                          <div className="mt-4 flex items-center justify-between gap-3">
-                            <div className="text-xl font-bold">{realm.name}</div>
-                            <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50">10 questions</Badge>
-                          </div>
-                          <div className="mt-2 text-sm leading-6 text-slate-600">{realm.description}</div>
-                        </motion.button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="mb-3 flex items-center gap-2">
-                      <Badge className="bg-slate-100 text-slate-700 hover:bg-slate-100">Difficulty Mode</Badge>
-                      <span className="text-sm text-slate-600">First 5 starter questions, final 5 research-inspired.</span>
-                    </div>
-                    <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                      {filteredHardRealms.map((realm, idx) => (
-                        <motion.button
-                          whileHover={{ y: -3 }}
-                          whileTap={{ scale: 0.99 }}
-                          key={`hard-${realm.name}`}
-                          onClick={() => openRealm("hard", idx)}
-                          className="rounded-[26px] border border-blue-100 bg-white p-5 text-left shadow-[0_10px_30px_rgba(37,99,235,0.08)]"
-                        >
-                          <div className="h-1 rounded-full bg-gradient-to-r from-slate-700 to-blue-500" />
-                          <div className="mt-4 flex items-center justify-between gap-3">
-                            <div className="text-xl font-bold">{realm.name}</div>
-                            <Badge className="bg-slate-100 text-slate-700 hover:bg-slate-100">10 questions</Badge>
-                          </div>
-                          <div className="mt-2 text-sm leading-6 text-slate-600">{realm.description}</div>
-                        </motion.button>
-                      ))}
-                    </div>
-                  </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: "Total Questions", value: QUESTION_BANK.length, icon: "📚" },
+                { label: "Calm Realms", value: CALM_REALMS.length, icon: "🌿" },
+                { label: "Competitive Realms", value: COMPETITIVE_REALMS.length, icon: "⚡" },
+                { label: "Max Points", value: QUESTION_BANK.reduce((s, q) => s + q.points, 0), icon: "🏆" },
+              ].map(s => (
+                <div key={s.label} className={`rounded-2xl border p-4 text-center ${T.card}`}>
+                  <div className="text-2xl mb-1">{s.icon}</div>
+                  <div className={`text-3xl font-black ${T.acc}`}>{s.value}</div>
+                  <div className={`text-xs mt-1 ${T.sub}`}>{s.label}</div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              ))}
+            </div>
+
+            <div className={`rounded-[28px] border p-6 space-y-5 ${T.card}`}>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className={`text-2xl font-black ${T.h}`}>Browse Realms</h2>
+                <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="🔍 Search topic..."
+                  className={`max-w-xs rounded-2xl text-sm border ${comp ? "border-red-900/40 bg-black/60 text-red-100 placeholder:text-red-400/40" : "border-emerald-100 bg-white text-slate-900 placeholder:text-slate-400"}`} />
+              </div>
+
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">🌿 Calm Mode</span>
+                  <span className="text-sm text-slate-500">15 questions each</span>
+                </div>
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+                  {fCalm.map((r, i) => (
+                    <motion.button whileHover={{ y: -3, scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                      key={r.name} onClick={() => openRealm("calm", CALM_REALMS.indexOf(r))}
+                      className="rounded-[20px] border border-emerald-100 bg-white hover:bg-emerald-50 p-4 text-left shadow-md transition-all">
+                      <div className="h-1 rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 mb-3" />
+                      <div className="text-xl mb-1">{r.icon}</div>
+                      <div className="font-bold text-slate-900 text-sm">{r.name}</div>
+                      <div className="text-xs text-slate-500 mt-1 leading-relaxed line-clamp-2">{r.description}</div>
+                      <div className="mt-2 text-xs font-semibold text-emerald-600">15 questions →</div>
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="px-3 py-1 rounded-full bg-red-950/60 text-red-300 text-xs font-bold border border-red-800/40">⚡ Competitive Mode</span>
+                  <span className="text-sm text-red-400/60">15 questions each</span>
+                </div>
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                  {fComp.map((r, i) => (
+                    <motion.button whileHover={{ y: -3, scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                      key={r.name} onClick={() => openRealm("competitive", COMPETITIVE_REALMS.indexOf(r))}
+                      className="rounded-[20px] border border-red-900/50 bg-black/80 hover:bg-red-950/40 p-4 text-left shadow-md transition-all">
+                      <div className="h-1 rounded-full bg-gradient-to-r from-red-900 to-red-500 mb-3" />
+                      <div className="text-xl mb-1">{r.icon}</div>
+                      <div className="font-bold text-red-100 text-sm">{r.name}</div>
+                      <div className="text-xs text-red-300/60 mt-1 leading-relaxed line-clamp-2">{r.description}</div>
+                      <div className="mt-2 text-xs font-semibold text-red-400">15 questions →</div>
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </motion.div>
         )}
 
-        {screen === "play" && currentQuestion && (
-          <div className="grid xl:grid-cols-[1.12fr_0.88fr] gap-6 items-start">
-            <Card className={`rounded-[32px] border overflow-hidden ${shell}`}>
-              <div className={`h-1.5 ${isNeuro ? "bg-gradient-to-r from-cyan-400 via-sky-400 to-emerald-400" : "bg-gradient-to-r from-blue-600 via-sky-500 to-cyan-400"}`} />
-              <CardContent className="p-6 md:p-8 space-y-6">
-                <div className="flex items-center justify-between gap-4 flex-wrap">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge className="rounded-full bg-blue-50 text-blue-700 hover:bg-blue-50">{currentQuestion.realm}</Badge>
-                      <Badge className="rounded-full bg-slate-100 text-slate-700 hover:bg-slate-100">{currentQuestion.difficulty}</Badge>
-                      <Badge className="rounded-full bg-emerald-50 text-emerald-700 hover:bg-emerald-50">Question {questionIndex + 1}/{currentRealmQuestions.length}</Badge>
-                    </div>
-                    <div className="text-sm font-medium uppercase tracking-[0.12em] text-slate-500">{currentQuestion.points} pts</div>
+        {/* PLAY */}
+        {screen === "play" && curQ && (
+          <div className="grid xl:grid-cols-[1.1fr_0.9fr] gap-5 items-start">
+            <Card className={`rounded-[32px] border overflow-hidden ${T.card}`}>
+              <div className={`h-2 bg-gradient-to-r ${T.bar}`} />
+              <CardContent className="p-5 md:p-7 space-y-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${T.badge}`}>{curQ.realm}</span>
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${T.badge}`}>{curQ.difficulty}</span>
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${T.badge}`}>Q{qi + 1}/{questions.length}</span>
+                    <span className={`text-xs font-bold ${T.acc}`}>{curQ.points} pts</span>
                   </div>
-                  <Button variant="secondary" className={`rounded-2xl border ${panel}`} onClick={() => setScreen("home")}>Exit</Button>
+                  <button onClick={goHome} className={`rounded-xl px-3 py-1.5 text-xs font-semibold border transition-all ${T.exit}`}>← Exit</button>
                 </div>
 
-                {gameMode === "easy" && (
-                  <div className={`rounded-2xl border p-4 text-sm leading-6 ${panel}`}>
-                    Disclaimer: Easy mode contains basic undergraduate-level concepts and is suitable for ages 15 and beyond.
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
-                    <span>Progress</span>
-                    <span>{Math.round(progress)}%</span>
-                  </div>
-                  <Progress value={progress} className="h-3 rounded-full bg-blue-100" />
+                <div className="space-y-1">
+                  <div className={`flex justify-between text-xs font-bold ${T.sub}`}><span>Progress</span><span>{Math.round(prog)}%</span></div>
+                  <Progress value={prog} className="h-2.5 rounded-full" color={T.prog} />
                 </div>
 
                 <AnimatePresence mode="wait">
-                  <motion.div
-                    key={currentQuestion.id}
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -12 }}
-                    transition={{ duration: 0.2 }}
-                    className="space-y-5"
-                  >
-                    <div className={`rounded-[28px] border p-5 ${panel}`}>
-                      <div className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-700">Question</div>
-                      <h2 className="mt-3 text-2xl md:text-3xl font-black leading-tight">{currentQuestion.prompt}</h2>
+                  <motion.div key={curQ.id} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.25 }} className="space-y-4">
+                    <div className={`rounded-[24px] border p-5 ${T.panel}`}>
+                      <div className={`text-xs font-bold uppercase tracking-widest mb-2 ${T.acc}`}>Question</div>
+                      <h2 className={`text-xl md:text-2xl font-black leading-snug ${T.h}`}>{curQ.prompt}</h2>
                     </div>
 
-                    <div className="grid gap-3">
-                      {optionPack.map((option, index) => {
-                        const isCorrect = showExplain && option.correct;
-                        const isWrong = showExplain && selectedChoice === index && !option.correct;
+                    <div className="grid gap-2.5">
+                      {opts.map((opt, i) => {
+                        const isC = explain && opt.correct;
+                        const isW = explain && sel === i && !opt.correct;
                         return (
-                          <button
-                            key={option.id}
-                            onClick={() => !showExplain && setSelectedChoice(index)}
-                            className={`rounded-[24px] border px-4 py-4 text-left transition-all duration-200 ${
-                              isCorrect
-                                ? "border-emerald-300 bg-emerald-50"
-                                : isWrong
-                                ? "border-rose-300 bg-rose-50"
-                                : selectedChoice === index
-                                ? isNeuro
-                                  ? "border-cyan-300 bg-cyan-50"
-                                  : "border-blue-300 bg-blue-50"
-                                : "border-blue-100 bg-white hover:bg-blue-50/60"
-                            }`}
-                          >
+                          <motion.button key={opt.id} whileHover={!explain ? { scale: 1.01 } : {}} whileTap={!explain ? { scale: 0.99 } : {}}
+                            onClick={() => !explain && setSel(i)}
+                            className={`rounded-[20px] border px-4 py-3.5 text-left transition-all duration-200 ${isC ? T.correct : isW ? T.wrong : sel === i ? T.selB : T.idle}`}>
                             <div className="flex items-start gap-3">
-                              <div className={`mt-0.5 h-8 w-8 rounded-full border flex items-center justify-center text-xs font-bold ${selectedChoice === index ? "border-blue-300 text-blue-700" : "border-slate-200 text-slate-600"}`}>
-                                {String.fromCharCode(65 + index)}
-                              </div>
-                              <div className="leading-7 text-slate-800">{option.text}</div>
+                              <div className={`mt-0.5 h-8 w-8 rounded-full border-2 flex-shrink-0 flex items-center justify-center text-xs font-black ${
+                                isC ? "border-emerald-400 text-emerald-400" :
+                                isW ? "border-red-400 text-red-400" :
+                                sel === i ? (comp ? "border-red-500 text-red-400" : "border-emerald-500 text-emerald-600") :
+                                (comp ? "border-red-900/40 text-red-400/50" : "border-slate-200 text-slate-500")
+                              }`}>{String.fromCharCode(65 + i)}</div>
+                              <span className={`leading-relaxed text-sm md:text-base ${T.body}`}>{opt.text}</span>
+                              {isC && <span className="ml-auto text-emerald-500 text-lg flex-shrink-0">✓</span>}
+                              {isW && <span className="ml-auto text-red-400 text-lg flex-shrink-0">✗</span>}
                             </div>
-                          </button>
+                          </motion.button>
                         );
                       })}
                     </div>
 
-                    <div className="flex flex-wrap gap-3">
-                      <Button className={`rounded-2xl text-white ${primary}`} onClick={submitAnswer} disabled={selectedChoice === null || showExplain}>
-                        Submit
-                      </Button>
-                      <Button variant="secondary" className={`rounded-2xl border ${panel}`} onClick={() => setShowHint((prev) => !prev)}>
-                        {showHint ? (isNeuro ? "Hide support" : "Hide hint") : (isNeuro ? "Show support" : "Show hint")}
-                      </Button>
-                      <Button variant="secondary" className={`rounded-2xl border ${panel}`} onClick={toggleSave}>
-                        {reviewList.includes(currentQuestion.id) ? "Remove from review" : "Save for review"}
-                      </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                        onClick={submit} disabled={sel === null || explain}
+                        className={`rounded-2xl px-5 py-2.5 font-bold text-sm disabled:opacity-40 ${T.btn}`}>Submit Answer</motion.button>
+                      <button onClick={() => setHint(h => !h)} className={`rounded-2xl px-4 py-2.5 font-semibold text-sm border ${T.exit}`}>{hint ? "Hide Hint" : "💡 Hint"}</button>
+                      <button onClick={toggleSave} className={`rounded-2xl px-4 py-2.5 font-semibold text-sm border ${T.exit}`}>{saved.includes(curQ.id) ? "⭐ Saved" : "☆ Save"}</button>
                     </div>
 
-                    {showHint && (
-                      <div className={`rounded-[24px] border p-4 ${panel}`}>
-                        <div className="text-sm font-semibold uppercase tracking-[0.08em] text-blue-700">{isNeuro ? "Support cue" : "Hint"}</div>
-                        <p className="mt-2 leading-7 text-slate-700">{currentQuestion.hint}</p>
-                      </div>
+                    {hint && (
+                      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className={`rounded-[20px] border p-4 ${T.panel}`}>
+                        <div className={`text-xs font-bold uppercase tracking-widest mb-1 ${T.acc}`}>Hint</div>
+                        <p className={`text-sm leading-relaxed ${T.muted}`}>{curQ.hint}</p>
+                      </motion.div>
                     )}
 
-                    {showExplain && (
-                      <div className="space-y-4">
-                        <div className="rounded-[24px] border border-emerald-200 bg-emerald-50 p-4">
-                          <div className="text-sm font-semibold uppercase tracking-[0.14em] text-emerald-700">Explanation</div>
-                          <p className="mt-2 leading-7 text-slate-700">{currentQuestion.explain}</p>
+                    {explain && (
+                      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+                        <div className="rounded-[20px] border border-emerald-400/30 bg-emerald-900/20 p-4">
+                          <div className="text-xs font-bold uppercase tracking-widest text-emerald-400 mb-1">Explanation</div>
+                          <p className={`text-sm leading-relaxed ${comp ? "text-emerald-200" : "text-slate-700"}`}>{curQ.explain}</p>
                         </div>
-                        <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4">
-                          <div className="text-sm font-semibold uppercase tracking-[0.14em] text-sky-700">Example</div>
-                          <p className="mt-2 leading-7 text-slate-700">{currentQuestion.example}</p>
+                        <div className={`rounded-[20px] border p-4 ${T.panel}`}>
+                          <div className={`text-xs font-bold uppercase tracking-widest mb-1 ${T.acc}`}>Example</div>
+                          <p className={`text-sm leading-relaxed ${T.muted}`}>{curQ.example}</p>
                         </div>
-                        <Button className={`rounded-2xl text-white ${primary}`} onClick={nextQuestion}>
-                          Next question
-                        </Button>
-                      </div>
+                        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                          onClick={next} className={`rounded-2xl px-6 py-3 font-bold w-full ${T.btn}`}>Next Question →</motion.button>
+                      </motion.div>
                     )}
                   </motion.div>
                 </AnimatePresence>
               </CardContent>
             </Card>
 
-            <div className="space-y-6">
-              <Card className={`rounded-[30px] border ${shell}`}>
-                <CardHeader>
-                  <CardTitle className="text-xl font-black">Session status</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className={`rounded-2xl border p-4 ${panel}`}>
-                      <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Score</div>
-                      <div className="mt-1 text-3xl font-black">{score}</div>
+            <div className="space-y-4">
+              <div className={`rounded-[28px] border p-5 space-y-4 ${T.card}`}>
+                <h3 className={`text-lg font-black ${T.h}`}>Session</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {[{ l: "Score", v: score }, { l: "Accuracy", v: `${acc}%` }, { l: "Answered", v: answered.length }, { l: "Saved", v: saved.length }].map(s => (
+                    <div key={s.l} className={`rounded-2xl border p-3 text-center ${T.panel}`}>
+                      <div className={`text-xs font-bold uppercase tracking-wider ${T.sub}`}>{s.l}</div>
+                      <div className={`text-2xl font-black mt-1 ${T.acc}`}>{s.v}</div>
                     </div>
-                    <div className={`rounded-2xl border p-4 ${panel}`}>
-                      <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Accuracy</div>
-                      <div className="mt-1 text-3xl font-black">{accuracy}%</div>
-                    </div>
-                  </div>
-                  <div className={`rounded-2xl border p-4 ${panel}`}>
-                    <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Mode</div>
-                    <div className="mt-1 text-2xl font-black">{gameMode === "easy" ? "Easy" : "Difficulty"}</div>
-                  </div>
-                  <div className={`rounded-2xl border p-4 ${panel}`}>
-                    <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Saved cards</div>
-                    <div className="mt-1 text-2xl font-black">{savedQuestionIds.length}</div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className={`rounded-[30px] border ${shell}`}>
-                <CardHeader>
-                  <CardTitle className="text-xl font-black">Quiz notes</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3 text-slate-700">
-                  <div className={`rounded-2xl border p-4 ${panel}`}>Lives have been removed, so you can keep playing without being stopped by mistakes.</div>
-                  <div className={`rounded-2xl border p-4 ${panel}`}>Easy mode covers undergraduate fundamentals such as ML, math, manipulators and compute.</div>
-                  <div className={`rounded-2xl border p-4 ${panel}`}>Difficulty mode starts with foundational questions and shifts to research-inspired ideas in the second half.</div>
-                </CardContent>
-              </Card>
+                  ))}
+                </div>
+                <div className={`rounded-2xl border p-3 ${T.panel}`}>
+                  <div className={`text-xs font-bold uppercase ${T.sub}`}>Realm</div>
+                  <div className={`font-bold mt-1 ${T.acc}`}>{realm?.icon} {realm?.name}</div>
+                </div>
+                <div className={`rounded-2xl border p-3 ${T.panel}`}>
+                  <div className={`text-xs font-bold uppercase ${T.sub}`}>Mode</div>
+                  <div className={`font-bold mt-1 ${T.acc}`}>{comp ? "⚡ Competitive" : "🌿 Calm"}</div>
+                </div>
+              </div>
+              <div className={`rounded-[28px] border p-5 ${T.card}`}>
+                <h3 className={`text-lg font-black mb-3 ${T.h}`}>Tips</h3>
+                <div className="space-y-2">
+                  {[
+                    comp ? "Research-level — think theoretically, not by elimination." : "Take your time — deep understanding matters.",
+                    "Use the hint if you are stuck before submitting.",
+                    "Save cards you want to review later.",
+                    comp ? "15 questions per realm: 5 Starter + 10 Research." : "Questions increase in depth across the realm.",
+                  ].map((t, i) => (
+                    <div key={i} className={`rounded-xl border p-2.5 text-xs leading-relaxed ${T.panel} ${T.muted}`}>{t}</div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         )}
 
-        {screen === "realmComplete" && (
-          <div className="max-w-4xl mx-auto pt-6">
-            <Card className={`rounded-[32px] border ${shell}`}>
-              <CardContent className="p-8 space-y-6">
+        {/* REALM DONE */}
+        {screen === "done" && (
+          <div className="max-w-3xl mx-auto">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className={`rounded-[32px] border overflow-hidden ${T.card}`}>
+              <div className={`h-2 bg-gradient-to-r ${T.bar}`} />
+              <div className="p-8 space-y-6 text-center">
+                <div className="text-6xl">{comp ? "⚡" : "🌿"}</div>
                 <div>
-                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-700">Realm complete</div>
-                  <h2 className="mt-2 text-3xl font-black">{currentRealm?.name} finished</h2>
-                  <p className="mt-2 leading-7 text-slate-600">You completed all 10 questions in this realm. Continue to the next one whenever you are ready.</p>
+                  <div className={`text-xs font-bold uppercase tracking-widest ${T.acc}`}>Realm Complete</div>
+                  <h2 className={`mt-2 text-3xl font-black ${T.h}`}>{realm?.name} ✓</h2>
                 </div>
-                <div className="grid sm:grid-cols-3 gap-4">
-                  <div className={`rounded-2xl border p-5 ${panel}`}>
-                    <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Score</div>
-                    <div className="mt-1 text-3xl font-black">{score}</div>
-                  </div>
-                  <div className={`rounded-2xl border p-5 ${panel}`}>
-                    <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Accuracy</div>
-                    <div className="mt-1 text-3xl font-black">{accuracy}%</div>
-                  </div>
-                  <div className={`rounded-2xl border p-5 ${panel}`}>
-                    <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Up next</div>
-                    <div className="mt-1 text-xl font-bold">{realms[realmIndex + 1]?.name || "Results"}</div>
-                  </div>
+                <div className="grid grid-cols-3 gap-4">
+                  {[{ l: "Score", v: score }, { l: "Accuracy", v: `${acc}%` }, { l: "Up Next", v: realms[ri + 1]?.name || "Results" }].map(s => (
+                    <div key={s.l} className={`rounded-2xl border p-4 ${T.panel}`}>
+                      <div className={`text-xs font-bold ${T.sub}`}>{s.l}</div>
+                      <div className={`text-xl font-black mt-1 ${T.acc}`}>{s.v}</div>
+                    </div>
+                  ))}
                 </div>
-                <Button className={`rounded-2xl text-white ${primary}`} onClick={continueToNextRealm}>
-                  Continue to {realms[realmIndex + 1]?.name || "Results"}
-                </Button>
-              </CardContent>
-            </Card>
+                <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                  onClick={continueRealm} className={`rounded-2xl px-8 py-3 font-bold text-lg w-full ${T.btn}`}>
+                  Continue → {realms[ri + 1]?.name || "See Results"}
+                </motion.button>
+              </div>
+            </motion.div>
           </div>
         )}
 
+        {/* RESULT */}
         {screen === "result" && (
-          <div className="max-w-4xl mx-auto pt-6">
-            <Card className={`rounded-[32px] border ${shell}`}>
-              <CardContent className="p-8 space-y-6">
+          <div className="max-w-3xl mx-auto">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className={`rounded-[32px] border overflow-hidden ${T.card}`}>
+              <div className={`h-2 bg-gradient-to-r ${T.bar}`} />
+              <div className="p-8 space-y-6 text-center">
+                <div className="text-6xl">{comp ? "🏆" : "🌟"}</div>
                 <div>
-                  <h2 className="text-3xl font-black">Session complete</h2>
-                  <p className="mt-1 text-slate-600">You finished this run of Physical AI - Mission Possible.</p>
+                  <h2 className={`text-3xl font-black ${T.h}`}>Session Complete!</h2>
+                  <p className={`mt-1 text-sm ${T.sub}`}>You finished {comp ? "Competitive" : "Calm"} Mode</p>
                 </div>
-                <div className="grid sm:grid-cols-3 gap-4">
-                  <div className={`rounded-2xl border p-5 ${panel}`}>
-                    <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Final score</div>
-                    <div className="mt-1 text-4xl font-black">{score}</div>
-                  </div>
-                  <div className={`rounded-2xl border p-5 ${panel}`}>
-                    <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Accuracy</div>
-                    <div className="mt-1 text-4xl font-black">{accuracy}%</div>
-                  </div>
-                  <div className={`rounded-2xl border p-5 ${panel}`}>
-                    <div className="text-xs uppercase tracking-[0.18em] text-slate-500">Saved cards</div>
-                    <div className="mt-1 text-4xl font-black">{savedQuestionIds.length}</div>
-                  </div>
+                <div className="grid grid-cols-3 gap-4">
+                  {[{ l: "Final Score", v: score }, { l: "Accuracy", v: `${acc}%` }, { l: "Saved Cards", v: saved.length }].map(s => (
+                    <div key={s.l} className={`rounded-2xl border p-5 ${T.panel}`}>
+                      <div className={`text-xs font-bold ${T.sub}`}>{s.l}</div>
+                      <div className={`text-3xl font-black mt-1 ${T.acc}`}>{s.v}</div>
+                    </div>
+                  ))}
                 </div>
-                <div className={`rounded-2xl border p-5 leading-7 ${panel}`}>
-                  You can replay either mode as often as you like. There is no lives limit, so the quiz is designed for repeated practice.
+                <div className={`rounded-2xl border p-4 text-sm leading-relaxed ${T.panel} ${T.muted}`}>
+                  {comp ? "Outstanding. Research-level mastery takes time — review saved cards and push your score higher." : "Great work! Revisit saved cards to consolidate understanding and try Competitive Mode when ready."}
                 </div>
-                <div className="flex flex-wrap gap-3">
-                  <Button className={`rounded-2xl text-white ${primary}`} onClick={replayCurrentMode}>Replay current mode</Button>
-                  <Button variant="secondary" className={`rounded-2xl border ${panel}`} onClick={() => setScreen("home")}>Back home</Button>
+                <div className="flex flex-wrap gap-3 justify-center">
+                  <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                    onClick={() => startMode(mode)} className={`rounded-2xl px-6 py-3 font-bold ${T.btn}`}>Replay {comp ? "Competitive" : "Calm"} Mode</motion.button>
+                  <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                    onClick={() => startMode(comp ? "calm" : "competitive")} className={`rounded-2xl px-6 py-3 font-bold border ${T.exit}`}>Switch to {comp ? "Calm 🌿" : "Competitive ⚡"}</motion.button>
+                  <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                    onClick={goHome} className={`rounded-2xl px-6 py-3 font-bold border ${T.exit}`}>Home</motion.button>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </motion.div>
           </div>
         )}
+
       </div>
     </div>
   );
