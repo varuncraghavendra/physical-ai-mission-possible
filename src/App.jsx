@@ -379,25 +379,20 @@ function useSound() {
       if (!ctx.current) ctx.current = new (window.AudioContext || window.webkitAudioContext)();
       const ac = ctx.current;
       active.current = true;
-      [[55, 4, 0.03], [110, 2, 0.02], [220, 1, 0.01]].forEach(([freq, lfoFreq, gain]) => {
-        const o = ac.createOscillator(); const g = ac.createGain();
-        const lfo = ac.createOscillator(); const lg = ac.createGain();
-        o.type = "sawtooth"; o.frequency.value = freq;
-        lfo.type = "square"; lfo.frequency.value = lfoFreq;
-        lg.gain.value = 0.015; g.gain.value = gain;
-        lfo.connect(lg); lg.connect(g.gain);
-        o.connect(g); g.connect(ac.destination);
-        lfo.start(); o.start();
-        nodes.current.push(lfo, o);
-      });
-      const buf = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate);
+      const buf = ac.createBuffer(1, ac.sampleRate * 4, ac.sampleRate);
       const d = buf.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
       const src = ac.createBufferSource(); src.buffer = buf; src.loop = true;
-      const flt = ac.createBiquadFilter(); flt.type = "bandpass"; flt.frequency.value = 900; flt.Q.value = 0.4;
-      const g = ac.createGain(); g.gain.value = 0.015;
+      const flt = ac.createBiquadFilter(); flt.type = "lowpass"; flt.frequency.value = 400;
+      const g = ac.createGain(); g.gain.value = 0.03;
       src.connect(flt); flt.connect(g); g.connect(ac.destination); src.start();
       nodes.current.push(src);
+      [[110, 0.01], [220, 0.007], [55, 0.012]].forEach(([freq, gain]) => {
+        const o = ac.createOscillator(); const og = ac.createGain();
+        o.type = "sine"; o.frequency.value = freq; og.gain.value = gain;
+        o.connect(og); og.connect(ac.destination); o.start();
+        nodes.current.push(o);
+      });
     } catch(e) {}
   }
 
@@ -408,13 +403,13 @@ function useSound() {
 // ── toggle ────────────────────────────────────────────────────────────────────
 function Toggle({ value, onChange, left, lv, right, rv, comp }) {
   return (
-    <div className={`inline-flex rounded-2xl border p-1 ${comp ? "border-red-800 bg-black/80" : "border-green-200 bg-white/80"}`}>
+    <div className={`inline-flex rounded-2xl border p-1 ${comp ? "border-blue-300 bg-white" : "border-green-200 bg-white/80"}`}>
       {[{l: left, v: lv}, {l: right, v: rv}].map(({l, v}) => (
         <button key={v} onClick={() => onChange(v)}
           className={`rounded-xl px-3 py-2 text-sm font-semibold transition-all ${
             value === v
-              ? (comp ? "bg-red-700 text-white" : "bg-emerald-600 text-white")
-              : (comp ? "text-red-300 hover:bg-red-900/40" : "text-slate-600 hover:bg-green-50")
+              ? (comp ? "bg-blue-600 text-white" : "bg-emerald-600 text-white")
+              : (comp ? "text-slate-600 hover:bg-blue-50" : "text-slate-600 hover:bg-green-50")
           }`}>{l}</button>
       ))}
     </div>
@@ -453,23 +448,23 @@ export default function App() {
   const prog = questions.length > 0 ? ((qi + (explain ? 1 : 0)) / questions.length) * 100 : 0;
 
   const T = comp ? {
-    bg: "bg-gradient-to-br from-black via-gray-950 to-red-950",
-    card: "border-red-900/60 bg-black/90 shadow-[0_14px_48px_rgba(220,38,38,0.15)]",
-    panel: "border-red-900/40 bg-red-950/30",
-    btn: "bg-red-700 hover:bg-red-600 text-white",
-    acc: "text-red-400",
-    badge: "bg-red-950/60 text-red-300 border border-red-800/40",
-    bar: "from-red-900 via-red-700 to-red-500",
-    prog: "bg-red-600",
-    h: "text-red-100",
-    sub: "text-red-300/60",
-    correct: "border-emerald-600 bg-emerald-950/60",
-    wrong: "border-red-600 bg-red-950/60",
-    selB: "border-red-500 bg-red-950/40",
-    idle: "border-red-900/40 bg-black/50 hover:bg-red-950/40",
-    exit: "border-red-800 text-red-300 hover:bg-red-950/40",
-    body: "text-red-100",
-    muted: "text-red-200/80",
+    bg: "bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50",
+    card: "border-blue-300 bg-white shadow-[0_14px_48px_rgba(37,99,235,0.15)]",
+    panel: "border-blue-200 bg-blue-50",
+    btn: "bg-blue-600 hover:bg-blue-500 text-white",
+    acc: "text-blue-600",
+    badge: "bg-blue-50 text-blue-700 border border-blue-300",
+    bar: "from-blue-600 via-cyan-500 to-blue-400",
+    prog: "bg-blue-600",
+    h: "text-slate-900",
+    sub: "text-slate-500",
+    correct: "border-emerald-400 bg-emerald-50",
+    wrong: "border-rose-300 bg-rose-50",
+    selB: "border-blue-500 bg-blue-50",
+    idle: "border-blue-200 bg-white hover:bg-blue-50",
+    exit: "border-blue-300 text-blue-700 hover:bg-blue-50",
+    body: "text-slate-800",
+    muted: "text-slate-600",
   } : {
     bg: "bg-gradient-to-br from-slate-50 via-green-50 to-teal-50",
     card: "border-emerald-100 bg-white/95 shadow-[0_14px_48px_rgba(16,185,129,0.08)]",
@@ -550,7 +545,7 @@ export default function App() {
             <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-widest ${T.badge}`}>
               {comp ? "⚡ COMPETITIVE" : "🌿 CALM"} — Physical AI Quiz
             </div>
-            <h1 className={`mt-2 text-3xl md:text-4xl font-black tracking-tight ${T.h}`}>Physical AI Preparation </h1>
+            <h1 className={`mt-2 text-3xl md:text-4xl font-black tracking-tight ${T.h}`}>Physical AI — Mission Possible</h1>
             <p className={`mt-1 text-sm ${T.sub}`}>{comp ? "High-stakes research questions. Prove your mastery." : "Build deep foundations. Learn without pressure."}</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -578,17 +573,17 @@ export default function App() {
               </motion.div>
 
               <motion.div whileHover={{ y: -4 }} onClick={() => startMode("competitive")}
-                className="rounded-[28px] border border-red-900/60 bg-black/90 shadow-[0_14px_48px_rgba(220,38,38,0.2)] overflow-hidden cursor-pointer">
-                <div className="h-2 bg-gradient-to-r from-red-900 via-red-600 to-red-400" />
+                className="rounded-[28px] border border-blue-300 bg-white shadow-[0_14px_48px_rgba(37,99,235,0.18)] overflow-hidden cursor-pointer">
+                <div className="h-2 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-400" />
                 <div className="p-7 space-y-4">
                   <div className="text-4xl">⚡</div>
-                  <h2 className="text-2xl md:text-3xl font-black text-red-100">Competitive Mode</h2>
-                  <p className="text-red-300/80 leading-relaxed">8 research-level realms. Adrenaline soundscape. 15 questions each — RL, optimization, foundation models and beyond.</p>
+                  <h2 className="text-2xl md:text-3xl font-black text-slate-900">Competitive Mode</h2>
+                  <p className="text-slate-600 leading-relaxed">8 research-level realms. Adrenaline soundscape. 15 questions each — RL, optimization, foundation models and beyond.</p>
                   <div className="flex flex-wrap gap-2">
-                    {COMPETITIVE_REALMS.slice(0,5).map(r => <span key={r.name} className="px-2 py-1 rounded-full bg-red-950/60 text-red-300 text-xs font-semibold border border-red-800/40">{r.icon} {r.name}</span>)}
-                    <span className="px-2 py-1 rounded-full bg-red-950/40 text-red-400 text-xs font-semibold">+3 more</span>
+                    {COMPETITIVE_REALMS.slice(0,5).map(r => <span key={r.name} className="px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold border border-blue-200">{r.icon} {r.name}</span>)}
+                    <span className="px-2 py-1 rounded-full bg-slate-100 text-slate-500 text-xs font-semibold">+3 more</span>
                   </div>
-                  <button className="mt-2 rounded-2xl px-6 py-3 bg-red-700 hover:bg-red-600 text-white font-bold transition-all w-full">Enter Competitive Mode 🔥</button>
+                  <button className="mt-2 rounded-2xl px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold transition-all w-full">Enter Competitive Mode ⚡</button>
                 </div>
               </motion.div>
             </div>
@@ -637,19 +632,19 @@ export default function App() {
 
               <div>
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="px-3 py-1 rounded-full bg-red-950/60 text-red-300 text-xs font-bold border border-red-800/40">⚡ Competitive Mode</span>
-                  <span className="text-sm text-red-400/60">15 questions each</span>
+                  <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold border border-blue-200">⚡ Competitive Mode</span>
+                  <span className="text-sm text-slate-500">15 questions each</span>
                 </div>
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                   {fComp.map((r, i) => (
                     <motion.button whileHover={{ y: -3, scale: 1.02 }} whileTap={{ scale: 0.98 }}
                       key={r.name} onClick={() => openRealm("competitive", COMPETITIVE_REALMS.indexOf(r))}
-                      className="rounded-[20px] border border-red-900/50 bg-black/80 hover:bg-red-950/40 p-4 text-left shadow-md transition-all">
-                      <div className="h-1 rounded-full bg-gradient-to-r from-red-900 to-red-500 mb-3" />
+                      className="rounded-[20px] border border-blue-200 bg-white hover:bg-blue-50 p-4 text-left shadow-md transition-all">
+                      <div className="h-1 rounded-full bg-gradient-to-r from-blue-600 to-cyan-400 mb-3" />
                       <div className="text-xl mb-1">{r.icon}</div>
-                      <div className="font-bold text-red-100 text-sm">{r.name}</div>
-                      <div className="text-xs text-red-300/60 mt-1 leading-relaxed line-clamp-2">{r.description}</div>
-                      <div className="mt-2 text-xs font-semibold text-red-400">15 questions →</div>
+                      <div className="font-bold text-slate-900 text-sm">{r.name}</div>
+                      <div className="text-xs text-slate-500 mt-1 leading-relaxed line-clamp-2">{r.description}</div>
+                      <div className="mt-2 text-xs font-semibold text-blue-600">15 questions →</div>
                     </motion.button>
                   ))}
                 </div>
@@ -701,7 +696,7 @@ export default function App() {
                                 sel === i ? (comp ? "border-red-500 text-red-400" : "border-emerald-500 text-emerald-600") :
                                 (comp ? "border-red-900/40 text-red-400/50" : "border-slate-200 text-slate-500")
                               }`}>{String.fromCharCode(65 + i)}</div>
-                              <span className={`leading-relaxed text-sm md:text-base ${T.body}`}>{opt.text}</span>
+                              <span className="leading-relaxed text-sm md:text-base text-slate-900 font-medium">{opt.text}</span>
                               {isC && <span className="ml-auto text-emerald-500 text-lg flex-shrink-0">✓</span>}
                               {isW && <span className="ml-auto text-red-400 text-lg flex-shrink-0">✗</span>}
                             </div>
@@ -721,7 +716,7 @@ export default function App() {
                     {hint && (
                       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className={`rounded-[20px] border p-4 ${T.panel}`}>
                         <div className={`text-xs font-bold uppercase tracking-widest mb-1 ${T.acc}`}>Hint</div>
-                        <p className={`text-sm leading-relaxed ${T.muted}`}>{curQ.hint}</p>
+                        <p className="text-sm leading-relaxed text-slate-900">{curQ.hint}</p>
                       </motion.div>
                     )}
 
@@ -729,11 +724,11 @@ export default function App() {
                       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
                         <div className="rounded-[20px] border border-emerald-400/30 bg-emerald-900/20 p-4">
                           <div className="text-xs font-bold uppercase tracking-widest text-emerald-400 mb-1">Explanation</div>
-                          <p className={`text-sm leading-relaxed ${comp ? "text-emerald-200" : "text-slate-700"}`}>{curQ.explain}</p>
+                          <p className="text-sm leading-relaxed text-slate-900">{curQ.explain}</p>
                         </div>
                         <div className={`rounded-[20px] border p-4 ${T.panel}`}>
                           <div className={`text-xs font-bold uppercase tracking-widest mb-1 ${T.acc}`}>Example</div>
-                          <p className={`text-sm leading-relaxed ${T.muted}`}>{curQ.example}</p>
+                          <p className="text-sm leading-relaxed text-slate-900">{curQ.example}</p>
                         </div>
                         <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                           onClick={next} className={`rounded-2xl px-6 py-3 font-bold w-full ${T.btn}`}>Next Question →</motion.button>
