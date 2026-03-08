@@ -782,7 +782,7 @@ export default function App() {
                     comp ? "Research-level — think theoretically, not by elimination." : "Take your time — deep understanding matters.",
                     "Use the hint if you are stuck before submitting.",
                     "Save cards you want to review later.",
-                    comp ? "15 questions per realm: 5 Starter + 10 Research." : "Questions increase in depth across the realm.",
+                    comp ? "Questions increase in depth across the realm.",
                   ].map((t, i) => (
                     <div key={i} className={`rounded-xl border p-2.5 text-xs leading-relaxed ${T.panel} ${T.muted}`}>{t}</div>
                   ))}
