@@ -579,7 +579,7 @@ export default function App() {
                 <div className="p-7 space-y-4">
                   <div className="text-4xl">🌿</div>
                   <h2 className="text-2xl md:text-3xl font-black text-slate-900">Calm Mode</h2>
-                  <p className="text-slate-600 leading-relaxed">10 foundational realms. 15 questions each covering kinematics to computation — no pressure, pure learning.</p>
+                  <p className="text-slate-600 leading-relaxed">10 foundational realms. 12 questions each covering kinematics to computation — no pressure, pure learning.</p>
                   <div className="flex flex-wrap gap-2">
                     {CALM_REALMS.slice(0,5).map(r => <span key={r.name} className="px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200">{r.icon} {r.name}</span>)}
                     <span className="px-2 py-1 rounded-full bg-slate-100 text-slate-500 text-xs font-semibold">+5 more</span>
@@ -594,7 +594,7 @@ export default function App() {
                 <div className="p-7 space-y-4">
                   <div className="text-4xl">⚡</div>
                   <h2 className="text-2xl md:text-3xl font-black text-slate-900">Competitive Mode</h2>
-                  <p className="text-slate-600 leading-relaxed">8 research-level realms. 15 questions each — RL, optimization, foundation models and beyond.</p>
+                  <p className="text-slate-600 leading-relaxed">8 research-level realms. 12 questions each — RL, optimization, foundation models and beyond.</p>
                   <div className="flex flex-wrap gap-2">
                     {COMPETITIVE_REALMS.slice(0,5).map(r => <span key={r.name} className="px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold border border-blue-200">{r.icon} {r.name}</span>)}
                     <span className="px-2 py-1 rounded-full bg-slate-100 text-slate-500 text-xs font-semibold">+3 more</span>
@@ -629,7 +629,7 @@ export default function App() {
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">🌿 Calm Mode</span>
-                  <span className="text-sm text-slate-500">15 questions each</span>
+                  <span className="text-sm text-slate-500">12 questions each</span>
                 </div>
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
                   {fCalm.map((r, i) => (
@@ -640,7 +640,7 @@ export default function App() {
                       <div className="text-xl mb-1">{r.icon}</div>
                       <div className="font-bold text-slate-900 text-sm">{r.name}</div>
                       <div className="text-xs text-slate-500 mt-1 leading-relaxed line-clamp-2">{r.description}</div>
-                      <div className="mt-2 text-xs font-semibold text-emerald-600">15 questions →</div>
+                      <div className="mt-2 text-xs font-semibold text-emerald-600">12 questions →</div>
                     </motion.button>
                   ))}
                 </div>
@@ -649,7 +649,7 @@ export default function App() {
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold border border-blue-200">⚡ Competitive Mode</span>
-                  <span className="text-sm text-slate-500">15 questions each</span>
+                  <span className="text-sm text-slate-500">12 questions each</span>
                 </div>
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                   {fComp.map((r, i) => (
@@ -660,7 +660,7 @@ export default function App() {
                       <div className="text-xl mb-1">{r.icon}</div>
                       <div className="font-bold text-slate-900 text-sm">{r.name}</div>
                       <div className="text-xs text-slate-500 mt-1 leading-relaxed line-clamp-2">{r.description}</div>
-                      <div className="mt-2 text-xs font-semibold text-blue-600">15 questions →</div>
+                      <div className="mt-2 text-xs font-semibold text-blue-600">12 questions →</div>
                     </motion.button>
                   ))}
                 </div>
