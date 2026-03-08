@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 const QUIZ_SCORE_TARGET = 10000;
 const QUESTION_TIME_LIMIT = 60;
 const AUTO_REVEAL_AFTER = 120;
-const QUESTIONS_PER_REALM = 15;
+const QUESTIONS_PER_REALM = ;
 
 function useWhiteNoise(enabled = true, volume = 0.016) {
   useEffect(() => {
